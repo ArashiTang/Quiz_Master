@@ -22,7 +22,13 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Practice')),
+      backgroundColor: const Color(0xFFE9F5EA), // Go Practice 主题底色
+      appBar: AppBar(
+        title: const Text('Practice'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+      ),
       body: Column(
         children: [
           // 搜索框
@@ -34,10 +40,14 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
                 hintText: 'Search',
+                filled: true,
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
             ),
           ),
@@ -52,7 +62,10 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
                 final kw = _search.text.trim().toLowerCase();
                 final items = kw.isEmpty
                     ? all
-                    : all.where((q) => (q.title).toLowerCase().contains(kw)).toList();
+                    : all
+                    .where((q) =>
+                    (q.title).toLowerCase().contains(kw))
+                    .toList();
 
                 if (items.isEmpty) {
                   return const Center(child: Text('No quizzes found'));
@@ -64,19 +77,20 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (ctx, i) {
                     final q = items[i];
-                    final updated = DateTime.fromMillisecondsSinceEpoch(q.updatedAt);
+                    final updated =
+                    DateTime.fromMillisecondsSinceEpoch(q.updatedAt);
                     return InkWell(
                       borderRadius: BorderRadius.circular(16),
                       onTap: () {
                         Navigator.pushNamed(
                           context,
-                          '/practiceRun',              // 下一步：练习页面的路由（下一阶段实现）
-                          arguments: q.id,             // 只传 quizId 即可
+                          '/practiceRun',
+                          arguments: q.id, // 只传 quizId 即可
                         );
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF9EA7FF), // 淡紫色卡片
+                          color: Colors.white, // 白卡片 + 绿色背景
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: const [
                             BoxShadow(
@@ -86,17 +100,21 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
                             ),
                           ],
                         ),
-                        padding: const EdgeInsets.fromLTRB(16, 18, 12, 18),
+                        padding:
+                        const EdgeInsets.fromLTRB(16, 18, 12, 18),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             // 左侧文本
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    q.title.isEmpty ? 'Quiz Name' : q.title,
+                                    q.title.isEmpty
+                                        ? 'Quiz Name'
+                                        : q.title,
                                     style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w700,
@@ -114,7 +132,11 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
                                 ],
                               ),
                             ),
-                            const Icon(Icons.chevron_right, color: Colors.white, size: 28),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: Colors.black54,
+                              size: 28,
+                            ),
                           ],
                         ),
                       ),

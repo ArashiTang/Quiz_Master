@@ -24,13 +24,14 @@ class PracticeDao extends DatabaseAccessor<AppDb> with _$PracticeDaoMixin {
           .get();
 
   // ===== 开始/结束一场 =====
-  Future<String> startRun(String quizId) async {
+  /// 支持把“进入页面时刻”作为 startedAt 传进来，避免 RecordDetail 用时为 00:00
+  Future<String> startRun(String quizId, {int? startedAtMs}) async {
     final id = newId('run');
     await into(practiceRuns).insert(
       PracticeRunsCompanion(
         id: Value(id),
         quizId: Value(quizId),
-        startedAt: Value(nowMs()),
+        startedAt: Value(startedAtMs ?? nowMs()),
       ),
     );
     return id;
@@ -116,14 +117,14 @@ class PracticeDao extends DatabaseAccessor<AppDb> with _$PracticeDaoMixin {
         ..orderBy([(t) => OrderingTerm.asc(t.answeredAt)]))
           .watch();
 
+  /// 按 runId 获取单场记录（RecordDetail 使用）
+  Future<PracticeRun?> getRunById(String runId) =>
+      (select(practiceRuns)..where((t) => t.id.equals(runId)))
+          .getSingleOrNull();
+
   // ===== 删除整场（含答案） =====
   Future<void> deleteRunCascade(String runId) async {
     await (delete(practiceAnswers)..where((t) => t.runId.equals(runId))).go();
     await (delete(practiceRuns)..where((t) => t.id.equals(runId))).go();
   }
-
-  /// 按 runId 获取单场记录（用于 RecordDetail 加载）
-  Future<PracticeRun?> getRunById(String runId) =>
-      (select(practiceRuns)..where((t) => t.id.equals(runId)))
-          .getSingleOrNull();
 }

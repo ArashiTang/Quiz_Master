@@ -155,7 +155,7 @@ class _HomePageState extends State<HomePage> {
       child: ListTile(
         contentPadding: EdgeInsets.zero,
         title: const Text('Local Quiz:', style: TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: const Text('0 MCQs, 0 Questions', style: TextStyle(color: Colors.black45)),
+        subtitle: const Text('Manage your local Quiz', style: TextStyle(color: Colors.black45)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: const [

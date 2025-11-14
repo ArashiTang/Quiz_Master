@@ -288,7 +288,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
             // 类型
             Row(
               children: [
-                const Text('Question Type:  '),
+                const Text('Number of Answers:  '),
                 ChoiceChip(
                   label: const Text('Single'),
                   selected: !_multiple,

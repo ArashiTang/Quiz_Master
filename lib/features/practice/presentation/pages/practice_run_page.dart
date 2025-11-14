@@ -1,20 +1,21 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+
 import 'package:quiz_master/core/database/daos/quiz_dao.dart';
 import 'package:quiz_master/core/database/daos/practice_dao.dart';
-import 'package:quiz_master/core/database/db/app_db.dart';
+import 'package:quiz_master/core/database/db/app_db.dart'; // Quizze / Question / QuizOption
 
 class PracticeRunPage extends StatefulWidget {
   final String quizId;
   final QuizDao quizDao;
-  final PracticeDao? practiceDao;
+  final PracticeDao practiceDao;
 
   const PracticeRunPage({
     super.key,
     required this.quizId,
     required this.quizDao,
-    this.practiceDao,
+    required this.practiceDao,
   });
 
   @override
@@ -23,66 +24,152 @@ class PracticeRunPage extends StatefulWidget {
 
 class _PracticeRunPageState extends State<PracticeRunPage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _scrollController = ScrollController();
+  final _listKey = GlobalKey();
 
-  String? _runId;
-  Timer? _timer;
-  int _elapsed = 0;
-  String _title = 'Quiz';
+  Quizze? _quiz;
+  final List<Question> _questions = [];
+  final Map<String, List<QuizOption>> _options = {}; // qId -> options
+  final Map<String, GlobalKey> _qKeys = {};          // 用于目录定位
 
-  List<Question> _questions = [];
-  final Map<String, List<QuizOption>> _opts = {};
+  /// 题ID -> 选中 optionId 集合（仅内存，不落库）
   final Map<String, Set<String>> _picked = {};
-  int _index = 0;
+
+  // 计时
+  Timer? _timer;
+  int _seconds = 0;
+  int? _startedAtMs; // ← 进入页面的真实开始时间（用于写 DB）
+
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _bootstrap();
-  }
-
-  Future<void> _bootstrap() async {
-    final quiz = await widget.quizDao.getQuiz(widget.quizId);
-    if (quiz != null) _title = quiz.title.isEmpty ? 'Quiz' : quiz.title;
-
-    final qs = await widget.quizDao.getQuestionsByQuiz(widget.quizId);
-    _questions = qs;
-
-    for (final q in _questions) {
-      final list = await widget.quizDao.getOptionsByQuestion(q.id);
-      _opts[q.id] = list;
-      _picked[q.id] = <String>{};
-    }
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      setState(() => _elapsed++);
-    });
-
-    if (widget.practiceDao != null) {
-      _runId = await widget.practiceDao!.startRun(widget.quizId);
-    }
-
-    if (mounted) setState(() {});
+    _loadAll();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  String get _clock {
-    final m = (_elapsed ~/ 60).toString().padLeft(2, '0');
-    final s = (_elapsed % 60).toString().padLeft(2, '0');
-    return '$m:$s';
+  Future<void> _loadAll() async {
+    // 读取 quiz + questions + options
+    final quiz = await widget.quizDao.getQuiz(widget.quizId);
+    if (quiz == null) {
+      if (mounted) Navigator.pop(context);
+      return;
+    }
+    final qs = await widget.quizDao.getQuestionsByQuiz(widget.quizId);
+    final Map<String, List<QuizOption>> optMap = {};
+    for (final q in qs) {
+      optMap[q.id] = await widget.quizDao.getOptionsByQuestion(q.id);
+    }
+
+    // 记录开始时刻并启动计时（仅内存）
+    _startedAtMs = DateTime.now().millisecondsSinceEpoch;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() => _seconds++);
+    });
+
+    setState(() {
+      _quiz = quiz;
+      _questions
+        ..clear()
+        ..addAll(qs);
+      _options
+        ..clear()
+        ..addAll(optMap);
+      _loading = false;
+
+      // 为每题准备一个 key（目录跳转用）
+      for (final q in _questions) {
+        _qKeys[q.id] = GlobalKey();
+      }
+    });
   }
 
-  bool _isAnswered(Question q) => _picked[q.id]?.isNotEmpty ?? false;
+  // ---------- 工具 ----------
+  Set<String> _parseCorrectIds(String raw) {
+    if (raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toSet();
+      }
+    } catch (_) {}
+    try {
+      final decoded = jsonDecode(raw.replaceAll("'", '"'));
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toSet();
+      }
+    } catch (_) {}
+    final cleaned = raw.replaceAll(RegExp(r'[\[\]\s]'), '');
+    if (cleaned.contains(',')) {
+      return cleaned.split(',').where((s) => s.isNotEmpty).toSet();
+    }
+    return {cleaned};
+  }
 
+  String _labelFor(int index) {
+    // 0=ABC, 1=123（沿用 quiz 设置）
+    final style = _quiz?.optionType ?? 0;
+    return style == 0
+        ? String.fromCharCode('A'.codeUnitAt(0) + index)
+        : '${index + 1}';
+  }
+
+  String _formatClock(int s) {
+    final mm = (s ~/ 60).toString().padLeft(2, '0');
+    final ss = (s % 60).toString().padLeft(2, '0');
+    return '$mm:$ss';
+  }
+
+  void _openCatalog() {
+    _scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  // -------- 目录跳转：关抽屉→等动画→等一帧→测坐标→滚动 --------
+  Future<void> _jumpToQuestion(String qId) async {
+    final itemKey = _qKeys[qId];
+    if (itemKey == null) return;
+
+    _scaffoldKey.currentState?.closeEndDrawer();                // 1) 关闭抽屉
+    await Future.delayed(const Duration(milliseconds: 250));     // 2) 等抽屉动画
+    await WidgetsBinding.instance.endOfFrame;                    // 3) 等一帧
+
+    final listCtx = _listKey.currentContext;
+    final itemCtx = itemKey.currentContext;
+    if (listCtx == null || itemCtx == null) return;
+
+    final listBox = listCtx.findRenderObject() as RenderBox;
+    final itemBox = itemCtx.findRenderObject() as RenderBox;
+
+    final listTop = listBox.localToGlobal(Offset.zero).dy;
+    final itemTop = itemBox.localToGlobal(Offset.zero).dy;
+
+    final delta = itemTop - listTop;              // 目标相对滚动位移
+    final desired = _scrollController.offset + delta - 12; // 顶部留 12px
+
+    final min = 0.0;
+    final max = _scrollController.position.maxScrollExtent;
+    final target = desired.clamp(min, max);
+
+    await _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  // ---------- 作答（仅内存） ----------
   void _togglePick(Question q, String optId) {
     final multiple = q.questionType == 1;
     setState(() {
-      final set = _picked[q.id]!;
+      final set = _picked.putIfAbsent(q.id, () => <String>{});
       if (multiple) {
         set.contains(optId) ? set.remove(optId) : set.add(optId);
       } else {
@@ -91,221 +178,325 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
           ..add(optId);
       }
     });
-
-    if (widget.practiceDao != null && _runId != null) {
-      final chosen = _picked[q.id] ?? <String>{}; // Set<String>
-      widget.practiceDao!.upsertAnswer(
-        runId: _runId!,
-        questionId: q.id,
-        chosenIds: chosen,
-        isCorrect: _judgeCorrect(q, chosen),
-      );
-    }
+    // 不落库 —— 直到 Submit 时才写 DB
   }
 
   bool _judgeCorrect(Question q, Set<String> chosen) {
     try {
-      final List decoded = q.correctAnswerIds.isEmpty ? [] : jsonDecode(q.correctAnswerIds);
-      final target = decoded.cast<String>().toSet();
-      return target.isNotEmpty && target.length == chosen.length && target.containsAll(chosen);
+      final target = _parseCorrectIds(q.correctAnswerIds);
+      return target.isNotEmpty &&
+          target.length == chosen.length &&
+          target.containsAll(chosen);
     } catch (_) {
       return false;
     }
   }
 
-  Future<void> _prev() async {
-    if (_index == 0) {
-      await showDialog(
-        context: context,
-        builder: (_) => const AlertDialog(content: Text('This is the first question.')),
-      );
-      return;
-    }
-    setState(() => _index--);
-  }
-
-  Future<void> _nextOrSubmit() async {
-    final isLast = _index == _questions.length - 1;
-    if (!isLast) {
-      setState(() => _index++);
-      return;
-    }
-
+  // ---------- 退出/提交 ----------
+  Future<bool> _confirmExit() async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Submit'),
-        content: const Text('Are you sure you want to submit?'),
+        title: const Text('Exit?'),
+        content: const Text('No data will be saved after exiting.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirm')),
-        ],
-      ),
-    );
-
-    if (ok != true) return;
-
-    int score = 0;
-    for (final q in _questions) {
-      if (_judgeCorrect(q, _picked[q.id]!)) score += (q.score ?? 1);
-    }
-    if (widget.practiceDao != null && _runId != null) {
-      await widget.practiceDao!.finishRun(_runId!, score);
-    }
-    if (!mounted) return;
-    Navigator.pop(context);
-  }
-
-  void _openCatalog() => _scaffoldKey.currentState?.openEndDrawer();
-
-  @override
-  Widget build(BuildContext context) {
-    final ready = _questions.isNotEmpty;
-    final q = ready ? _questions[_index] : null;
-    final opts = ready ? _opts[q!.id]! : const <QuizOption>[];
-    final chosen = ready ? _picked[q!.id]! : <String>{};
-    final isLast = ready && _index == _questions.length - 1;
-
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(_title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.menu_book_rounded),
-            onPressed: _openCatalog,
-            tooltip: 'Catalog',
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Exit'),
           ),
         ],
       ),
+    );
+    return ok == true;
+  }
 
-      // ======= 目录（右侧抽屉）=======
-      endDrawer: Drawer(
-        child: SafeArea(
+  Future<void> _submit() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Are you sure you want to submit?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    // 1) 先创建 run（把进入页面时刻作为 startedAt）
+    final runId = await widget.practiceDao.startRun(
+      widget.quizId,
+      startedAtMs: _startedAtMs,
+    );
+
+    // 2) 计算得分 + 写每题答案
+    int score = 0;
+    final enableScores = _quiz?.enableScores ?? false;
+
+    for (final q in _questions) {
+      final chosen = _picked[q.id] ?? <String>{};
+      final correct = _judgeCorrect(q, chosen);
+      if (correct) {
+        score += enableScores ? (q.score ?? 1) : 1;
+      }
+      await widget.practiceDao.saveAnswer(
+        runId: runId,
+        questionId: q.id,
+        chosenIds: chosen.toList(),
+        correct: correct,
+      );
+    }
+
+    // 3) 写结束时间与总分
+    await widget.practiceDao.finishRun(runId, score);
+
+    if (!mounted) return;
+    Navigator.pop(context); // 返回选择页
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final quiz = _quiz!;
+    return WillPopScope(
+      onWillPop: () async {
+        // 抽屉开着就先关抽屉，不弹退出框
+        if (_scaffoldKey.currentState?.isEndDrawerOpen ?? false) {
+          _scaffoldKey.currentState?.closeEndDrawer();
+          return false;
+        }
+        return _confirmExit();
+      },
+      child: Scaffold(
+        key: _scaffoldKey,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () async {
+              // 抽屉开着就先关抽屉
+              if (_scaffoldKey.currentState?.isEndDrawerOpen ?? false) {
+                _scaffoldKey.currentState?.closeEndDrawer();
+                return;
+              }
+              if (await _confirmExit()) {
+                if (mounted) Navigator.pop(context);
+              }
+            },
+          ),
+          title: Text(quiz.title.isEmpty ? '(Untitled)' : quiz.title),
+          actions: [
+            IconButton(
+              onPressed: _openCatalog,
+              icon: const Icon(Icons.menu_book_outlined),
+              tooltip: 'Catalog',
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(56),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                _formatClock(_seconds),
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ),
+
+        // 右侧目录
+        endDrawer: Drawer(
+          child: SafeArea(
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              itemBuilder: (_, i) {
+                final q = _questions[i];
+                final done = (_picked[q.id] != null && _picked[q.id]!.isNotEmpty);
+                return ListTile(
+                  leading: CircleAvatar(
+                    radius: 10,
+                    backgroundColor: done ? Colors.green : Colors.grey,
+                  ),
+                  title: Text('Q${i + 1}'),
+                  onTap: () => _jumpToQuestion(q.id),
+                );
+              },
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemCount: _questions.length,
+            ),
+          ),
+        ),
+
+        // 一次性构建所有题：SingleChildScrollView + Column
+        body: SingleChildScrollView(
+          key: _listKey,
+          controller: _scrollController,
+          padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  'Catalog',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              // 顶部信息条（可选）
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      Chip(label: Text('Option: ${quiz.optionType == 0 ? 'ABC' : '123'}')),
+                      Chip(label: Text('Pass: ${quiz.passRate}%')),
+                      Chip(label: Text('Scores: ${quiz.enableScores ? 'On' : 'Off'}')),
+                    ],
+                  ),
                 ),
               ),
-              const Divider(height: 1),
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1,
+              const SizedBox(height: 12),
+
+              // 题目卡（全部展示）
+              for (int i = 0; i < _questions.length; i++) ...[
+                _QuestionCard(
+                  key: _qKeys[_questions[i].id],
+                  index: i,
+                  question: _questions[i],
+                  options: _options[_questions[i].id] ?? const <QuizOption>[],
+                  picked: _picked[_questions[i].id] ?? <String>{},
+                  labelBuilder: _labelFor,
+                  onToggle: (optId) => _togglePick(_questions[i], optId),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // 底部提交
+              const SizedBox(height: 24),
+              Center(
+                child: SizedBox(
+                  width: 260,
+                  height: 52,
+                  child: OutlinedButton(
+                    onPressed: _submit,
+                    child: const Text('Submit', style: TextStyle(fontSize: 18)),
                   ),
-                  itemCount: _questions.length,
-                  itemBuilder: (ctx, i) {
-                    final qi = _questions[i];
-                    final done = _isAnswered(qi);
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pop(); // 关闭抽屉
-                        setState(() => _index = i); // 跳题
-                      },
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuestionCard extends StatelessWidget {
+  final int index;
+  final Question question;
+  final List<QuizOption> options;
+  final Set<String> picked;
+  final String Function(int) labelBuilder;
+  final ValueChanged<String> onToggle;
+
+  const _QuestionCard({
+    super.key,
+    required this.index,
+    required this.question,
+    required this.options,
+    required this.picked,
+    required this.labelBuilder,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final enableScores = (question.score ?? 1) > 0;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('Q${index + 1}',
+                    style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(width: 8),
+                Chip(
+                  label: Text(question.questionType == 1 ? 'Multiple' : 'Single'),
+                ),
+                const SizedBox(width: 8),
+                if (enableScores) Chip(label: Text('Score: ${question.score ?? 1}')),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            Text(
+              question.content.isEmpty ? '(No content)' : question.content,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 12),
+
+            Column(
+              children: [
+                for (int i = 0; i < options.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: InkWell(
+                      onTap: () => onToggle(options[i].id),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CircleAvatar(
-                            radius: 18,
-                            backgroundColor: done ? Colors.green : Colors.grey,
-                            child: Text(
-                              '${i + 1}',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          SizedBox(
+                            width: 36,
+                            child: CircleAvatar(
+                              radius: 14,
+                              child: Text(labelBuilder(i)),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            done ? '✓' : '',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: done ? Colors.green : Colors.grey,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: picked.contains(options[i].id)
+                                      ? Colors.green
+                                      : Colors.grey.shade400,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                color: picked.contains(options[i].id)
+                                    ? Colors.green.withOpacity(0.06)
+                                    : null,
+                              ),
+                              child: Text(
+                                options[i].textValue.isEmpty
+                                    ? '(Empty option)'
+                                    : options[i].textValue,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-
-      // ======= 主内容区 =======
-      body: ready
-          ? Column(
-        children: [
-          Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              _clock,
-              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w600),
-            ),
-          ),
-          const Divider(height: 1),
-
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  '${_index + 1}. ${q!.content}',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 16),
-                ...opts.map((o) {
-                  final selected = chosen.contains(o.id);
-                  return ListTile(
-                    title: Text(o.textValue),
-                    trailing: Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: selected ? Colors.green : Colors.grey.shade300,
-                      ),
                     ),
-                    onTap: () => _togglePick(q, o.id),
-                  );
-                }),
+                  ),
               ],
             ),
-          ),
-
-          // 底部按钮
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: _prev,
-                  child: const Text('Previous'),
-                ),
-              ),
-              Expanded(
-                child: TextButton(
-                  onPressed: _nextOrSubmit,
-                  child: Text(isLast ? 'Submit' : 'Next'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      )
-          : const Center(child: CircularProgressIndicator()),
+          ],
+        ),
+      ),
     );
   }
 }

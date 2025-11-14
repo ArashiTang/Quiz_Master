@@ -45,13 +45,13 @@ class QuizApp extends StatelessWidget {
         // Question 编辑页
         '/questionEditor': (_) => QuestionEditorPage(quizDao: quizDao),
 
-        // 预览页
+        // Quiz 预览页
         '/quizPreview': (_) => QuizPreviewPage(quizDao: quizDao),
 
         //Practice 选择页
         '/practiceSelect': (_) => PracticeSelectPage(quizDao: quizDao),
 
-        //practice 练习页
+        //Practice 练习页
         '/practiceRun': (ctx) {
           final quizId = ModalRoute.of(ctx)!.settings.arguments as String;
           return PracticeRunPage(
@@ -61,10 +61,10 @@ class QuizApp extends StatelessWidget {
           );
         },
 
-        //record 列表页
+        //Record 列表页
         '/records': (_) => RecordListPage(practiceDao: practiceDao, quizDao: quizDao),
 
-        //record 详情页
+        //Record 详情页
         '/recordDetail': (ctx) {
           final runId = ModalRoute.of(ctx)!.settings.arguments as String;
           return RecordDetailPage(

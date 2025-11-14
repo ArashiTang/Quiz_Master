@@ -43,7 +43,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     final ans = await widget.practiceDao.getAnswersByRun(widget.runId);
 
     final Map<String, PracticeAnswer> ansMap = {
-      for (final a in ans) a.questionId: a
+      for (final a in ans) a.questionId: a,
     };
 
     final Map<String, List<QuizOption>> optMap = {};
@@ -69,15 +69,65 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     return '${two(d.inMinutes)}:${two(d.inSeconds % 60)}';
   }
 
+  // ---------- 评分/结果计算 ----------
+  int _totalPossible() {
+    final enableScores = _quiz?.enableScores ?? false;
+    if (!enableScores) return _questions.length;
+    // 分数模式：累加每题分（缺省按 1 计）
+    return _questions.fold<int>(0, (acc, q) => acc + (q.score ?? 1));
+  }
+
+  int _obtained() {
+    final enableScores = _quiz?.enableScores ?? false;
+    if (!enableScores) {
+      // 正确题数量
+      return _answers.values.where((a) => a.isCorrect == true).length;
+    }
+    // 分数模式：若 run.score 有值用它；否则根据答案和题目分数计算一次兜底
+    final stored = _run?.score;
+    if (stored != null) return stored;
+    int sum = 0;
+    for (final q in _questions) {
+      final ans = _answers[q.id];
+      final add = (ans?.isCorrect == true) ? (q.score ?? 1) : 0;
+      sum += add;
+    }
+    return sum;
+  }
+
+  double _percent() {
+    final total = _totalPossible();
+    if (total <= 0) return 0;
+    return (_obtained() / total) * 100.0;
+  }
+
+  String _percentText() {
+    final p = _percent();
+    // 一位小数（去掉无意义 .0）
+    final s = p.toStringAsFixed(1);
+    return s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
+  }
+
+  ({String text, Color color}) _resultDisplay() {
+    final passRate = (_quiz?.passRate ?? 60).toDouble(); // 0-100
+    final p = _percent();
+    final pass = p >= passRate;
+    return (
+    text: pass ? 'Pass' : 'Fail',
+    color: pass ? Colors.green : Colors.red
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = _quiz?.title ?? 'Quiz Name';
-    final scoreStr = _run?.score?.toString() ?? '--';
+
+    final result = _resultDisplay();
 
     return Scaffold(
       appBar: AppBar(
         leading: BackButton(onPressed: () => Navigator.pop(context)),
-        title: Text(title),
+        title: const Text('Record'),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_outline),
@@ -90,11 +140,13 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
                       'This will remove this practice run and its answers.'),
                   actions: [
                     TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel')),
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
                     TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Delete')),
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Delete'),
+                    ),
                   ],
                 ),
               );
@@ -109,19 +161,29 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 概览：用时 & 成绩
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Time: ${_formatDuration()}',
-                  style: const TextStyle(fontSize: 16)),
-              Text('Score: $scoreStr',
-                  style: const TextStyle(fontSize: 16)),
-            ],
+          // ===== 顶部 4 行信息 =====
+          Center(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
+          const SizedBox(height: 8),
+          Text('Time Spent: ${_formatDuration()}',
+              style: const TextStyle(fontSize: 16)),
+          const SizedBox(height: 4),
+          Text('Score: ${_percentText()}%',
+              style: const TextStyle(fontSize: 16)),
+          const SizedBox(height: 4),
+          Text('Result: ${result.text}',
+              style: TextStyle(fontSize: 16, color: result.color)),
           const SizedBox(height: 16),
 
-          // 逐题展示
+          // ===== 逐题展示 =====
           for (int i = 0; i < _questions.length; i++)
             _QuestionBlock(
               index: i,
@@ -149,19 +211,46 @@ class _QuestionBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Set<String> correctIds = _parseCorrect(q.correctAnswerIds);
-    final Set<String> chosen =
-    _parseChosen(answer?.chosenOptions ?? '[]');
+    final correctIds = _parseIds(q.correctAnswerIds);
+    final chosen = _parseIds(answer?.chosenOptions ?? '[]');
+
+    final bool isCorrect =
+        chosen.isNotEmpty && chosen.length == correctIds.length && chosen.containsAll(correctIds);
+
+    final statusText = isCorrect ? '（Correct）' : '（Incorrect or Incomplete）';
+    final statusColor = isCorrect ? Colors.green : Colors.red;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${index + 1}. ${q.content}',
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.w600)),
+          // 题干 + 状态
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: '${index + 1}. ${q.content} ',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                TextSpan(
+                  text: statusText,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: statusColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 8),
+
+          // 选项
           for (int i = 0; i < options.length; i++)
             _optionLine(options[i], i, correctIds, chosen),
           const SizedBox(height: 6),
@@ -176,8 +265,6 @@ class _QuestionBlock extends StatelessWidget {
       Set<String> correctIds,
       Set<String> chosen,
       ) {
-    // 你的选择：红色（错）/绿色（对）
-    // 正确答案：绿色
     final bool isChosen = chosen.contains(opt.id);
     final bool isCorrect = correctIds.contains(opt.id);
 
@@ -198,8 +285,7 @@ class _QuestionBlock extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Text('$label. ',
-              style: TextStyle(fontSize: 16, color: color)),
+          Text('$label. ', style: TextStyle(fontSize: 16, color: color)),
           Expanded(
             child: Text(
               opt.textValue,
@@ -225,19 +311,10 @@ class _QuestionBlock extends StatelessWidget {
     );
   }
 
-  static Set<String> _parseCorrect(String json) {
-    if (json.isEmpty) return {};
+  static Set<String> _parseIds(String jsonStr) {
+    if (jsonStr.isEmpty) return {};
     try {
-      final List decoded = jsonDecode(json);
-      return decoded.cast<String>().toSet();
-    } catch (_) {
-      return {};
-    }
-  }
-
-  static Set<String> _parseChosen(String json) {
-    try {
-      final List decoded = jsonDecode(json);
+      final List decoded = jsonDecode(jsonStr);
       return decoded.cast<String>().toSet();
     } catch (_) {
       return {};
