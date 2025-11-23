@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 
 import 'package:quiz_master/core/database/daos/quiz_dao.dart';
 import 'package:quiz_master/core/database/daos/practice_dao.dart';
-import 'package:quiz_master/core/database/db/app_db.dart'; // Quizze / Question / QuizOption
+import 'package:quiz_master/core/database/db/app_db.dart';
+import 'package:quiz_master/core/remote/supabase_auth_service.dart';
 
 class PracticeRunPage extends StatefulWidget {
   final String quizId;
@@ -57,7 +58,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
 
   Future<void> _loadAll() async {
     // 读取 quiz + questions + options
-    final quiz = await widget.quizDao.getQuiz(widget.quizId);
+    final quiz = await widget.quizDao.getQuizById(widget.quizId);
     if (quiz == null) {
       if (mounted) Navigator.pop(context);
       return;
@@ -236,6 +237,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     // 1) 先创建 run（把进入页面时刻作为 startedAt）
     final runId = await widget.practiceDao.startRun(
       widget.quizId,
+      SupabaseAuthService.instance.currentOwnerKey,
       startedAtMs: _startedAtMs,
     );
 

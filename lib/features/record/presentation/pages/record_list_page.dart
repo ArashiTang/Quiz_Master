@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:quiz_master/core/database/daos/practice_dao.dart';
 import 'package:quiz_master/core/database/daos/quiz_dao.dart';
 import 'package:quiz_master/core/database/db/app_db.dart';
+import 'package:quiz_master/core/remote/supabase_auth_service.dart';
 
 class RecordListPage extends StatefulWidget {
   final PracticeDao practiceDao;
@@ -44,6 +45,9 @@ class _RecordListPageState extends State<RecordListPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 当前 ownerKey：已登录 = 邮箱，未登录 = 'Guest'
+    final ownerKey = SupabaseAuthService.instance.currentOwnerKey;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFE5E5),
       appBar: AppBar(
@@ -81,7 +85,7 @@ class _RecordListPageState extends State<RecordListPage> {
           // 记录列表
           Expanded(
             child: StreamBuilder<List<PracticeRun>>(
-              stream: widget.practiceDao.watchRuns(),
+              stream: widget.practiceDao.watchRunsByOwner(ownerKey),
               builder: (context, runSnap) {
                 final runs = runSnap.data ?? const <PracticeRun>[];
                 if (runs.isEmpty) {
@@ -97,30 +101,36 @@ class _RecordListPageState extends State<RecordListPage> {
 
                     // 读取 quiz 信息
                     return FutureBuilder<Quizze?>(
-                      future: widget.quizDao.getQuiz(run.quizId),
+                      future: widget.quizDao.getQuizById(run.quizId),
                       builder: (context, quizSnap) {
                         final quiz = quizSnap.data;
-                        final title =
-                            quiz?.title ?? "(Untitled Quiz)";
+                        final title = quiz?.title ?? "(Untitled Quiz)";
 
                         // 搜索过滤
                         if (_keyword.isNotEmpty &&
-                            !title.toLowerCase().contains(_keyword.toLowerCase())) {
+                            !title
+                                .toLowerCase()
+                                .contains(_keyword.toLowerCase())) {
                           return const SizedBox.shrink();
                         }
 
                         // 加载题目用于计算总分
                         return FutureBuilder<List<Question>>(
-                          future:
-                          widget.quizDao.getQuestionsByQuiz(run.quizId),
+                          future: widget.quizDao.getQuestionsByQuiz(run.quizId),
                           builder: (context, questionSnap) {
-                            final qs = questionSnap.data ?? const <Question>[];
+                            final qs =
+                                questionSnap.data ?? const <Question>[];
 
                             String percent = "--%";
                             if (quiz != null && run.score != null) {
-                              final enableScores = quiz.enableScores ?? false;
+                              final enableScores =
+                                  quiz.enableScores ?? false;
                               final total = enableScores
-                                  ? qs.fold<int>(0, (sum, q) => sum + (q.score ?? 1))
+                                  ? qs.fold<int>(
+                                0,
+                                    (sum, q) =>
+                                sum + (q.score ?? 1),
+                              )
                                   : qs.length;
 
                               if (total > 0) {
@@ -130,8 +140,10 @@ class _RecordListPageState extends State<RecordListPage> {
                               }
                             }
 
-                            final date = DateTime.fromMillisecondsSinceEpoch(
-                                (run.endedAt ?? run.startedAt));
+                            final date = DateTime
+                                .fromMillisecondsSinceEpoch(
+                              (run.endedAt ?? run.startedAt),
+                            );
 
                             return InkWell(
                               onTap: () {

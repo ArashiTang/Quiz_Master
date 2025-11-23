@@ -6,6 +6,7 @@ class PracticeRuns extends Table {
   IntColumn  get startedAt => integer()();       // ms since epoch
   IntColumn  get endedAt => integer().nullable()(); // 结束时间，可空
   IntColumn  get score => integer().withDefault(const Constant(0))();
+  TextColumn get ownerKey => text()();
 
   @override
   Set<Column> get primaryKey => {id};

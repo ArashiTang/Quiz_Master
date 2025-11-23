@@ -9,6 +9,7 @@ class Quizzes extends Table {
   BoolColumn get enableScores => boolean().withDefault(const Constant(false))();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
+  TextColumn get ownerKey => text()();
 
   @override
   Set<Column> get primaryKey => {id};

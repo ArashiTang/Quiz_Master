@@ -38,7 +38,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
       if (mounted) Navigator.pop(context);
       return;
     }
-    final quiz = await widget.quizDao.getQuiz(run.quizId);
+    final quiz = await widget.quizDao.getQuizById(run.quizId);
     final qs = await widget.quizDao.getQuestionsByQuiz(run.quizId);
     final ans = await widget.practiceDao.getAnswersByRun(widget.runId);
 

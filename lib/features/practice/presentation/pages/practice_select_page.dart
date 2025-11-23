@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quiz_master/core/database/daos/quiz_dao.dart';
 import 'package:quiz_master/core/database/db/app_db.dart';
+import 'package:quiz_master/core/remote/supabase_auth_service.dart';
 
 class PracticeSelectPage extends StatefulWidget {
   final QuizDao quizDao;
@@ -56,7 +57,7 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
           // 列表
           Expanded(
             child: StreamBuilder<List<Quizze>>(
-              stream: widget.quizDao.watchAllQuizzes(),
+              stream: widget.quizDao.watchQuizzesByOwner(SupabaseAuthService.instance.currentOwnerKey),
               builder: (context, snap) {
                 final all = snap.data ?? const <Quizze>[];
                 final kw = _search.text.trim().toLowerCase();

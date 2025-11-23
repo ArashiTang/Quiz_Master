@@ -91,7 +91,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
 
     // 编辑：加载题与选项
     _questionId = a.questionId!;
-    final q = await widget.quizDao.getQuestion(_questionId);
+    final q = await widget.quizDao.getQuestionById(_questionId);
     if (q != null) {
       _loaded = q;
       _multiple = q.questionType == 1;

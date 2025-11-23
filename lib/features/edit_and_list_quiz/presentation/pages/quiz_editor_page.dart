@@ -6,6 +6,7 @@ import 'package:quiz_master/core/database/db/app_db.dart';
 import 'package:quiz_master/core/database/utils/ids.dart';
 import 'package:quiz_master/features/edit_and_list_quiz/presentation/pages/question_editor_page.dart';
 import 'package:quiz_master/features/edit_and_list_quiz/presentation/pages/quiz_preview_page.dart';
+import 'package:quiz_master/core/remote/supabase_auth_service.dart';
 
 class QuizEditorPage extends StatefulWidget {
   final QuizDao quizDao;
@@ -23,17 +24,18 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
 
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
-  int _optionType = 0;
-  int _passRate = 60;
+  int _optionType = 0; // 0 = ABC, 1 = 123
+  int _passRate = 60; // 0..100
   bool _enableScores = false;
 
-  // -------------------- 新增：确认返回函数 --------------------
+  // -------------------- 未保存时拦截返回 --------------------
   Future<bool> _confirmDiscard() async {
     if (!_dirty) return true;
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Are you sure you want to go back to the previous page?'),
+        title: const Text(
+            'Are you sure you want to go back to the previous page?'),
         content: const Text("You haven't saved yet."),
         actions: [
           TextButton(
@@ -46,6 +48,7 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
     return ok == true;
   }
   // -----------------------------------------------------------
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -55,15 +58,17 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
     final args = ModalRoute.of(context)!.settings.arguments;
     if (args is String?) {
       if (args != null) {
+        // 编辑已有 quiz
         _loadQuiz(args);
       } else {
+        // 新建 quiz，先给自己生成一个临时 id
         _draftId = newId('edit_and_list_quiz');
       }
     }
   }
 
   Future<void> _loadQuiz(String id) async {
-    final q = await widget.quizDao.getQuiz(id);
+    final q = await widget.quizDao.getQuizById(id);
     if (q != null) {
       setState(() {
         _loaded = q;
@@ -78,6 +83,11 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
 
   Future<void> _save() async {
     final now = DateTime.now().millisecondsSinceEpoch;
+
+    // 当前 owner：
+    final ownerEmail =
+        _loaded?.ownerKey ?? SupabaseAuthService.instance.currentOwnerKey;
+
     final data = QuizzesCompanion(
       id: Value(_loaded?.id ?? _draftId ?? newId('edit_and_list_quiz')),
       title: Value(_titleCtrl.text),
@@ -87,9 +97,21 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
       enableScores: Value(_enableScores),
       createdAt: Value(_loaded?.createdAt ?? now),
       updatedAt: Value(now),
+      ownerKey: Value(ownerEmail),
     );
 
-    await widget.quizDao.upsertQuiz(data);
+    try {
+      await widget.quizDao.upsertQuiz(data, ownerEmail);
+    } catch (e, st) {
+      print('Failed to save quiz: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save quiz: $e')),
+        );
+      }
+      return;
+    }
+
     if (!mounted) return;
     setState(() {
       _loaded = Quizze(
@@ -101,9 +123,10 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
         enableScores: data.enableScores.value,
         createdAt: data.createdAt.value,
         updatedAt: data.updatedAt.value,
+        ownerKey: data.ownerKey.value,
       );
       _draftId = null;
-      _dirty = false; // ✅ 保存后清除修改标记
+      _dirty = false;
     });
 
     ScaffoldMessenger.of(context)
@@ -111,12 +134,11 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
   }
 
   Future<void> _deleteQuiz() async {
-    // 只能删除已保存到 DB 的 edit_and_list_quiz
-    final id = _loaded?.id; // 你的模型名若是 QuizzeData，请保持一致
+    final id = _loaded?.id;
     if (id == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please save the edit_and_list_quiz first.')),
+          const SnackBar(content: Text('Please save the quiz first.')),
         );
       }
       return;
@@ -125,8 +147,9 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete this edit_and_list_quiz?'),
-        content: const Text('This will delete the edit_and_list_quiz and all its questions & options.'),
+        title: const Text('Delete this quiz?'),
+        content:
+        const Text('This will delete the quiz and all its questions & options.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -141,25 +164,19 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
     );
 
     if (ok == true) {
-      // 级联删除（外键 ON DELETE CASCADE 已启用）
       await widget.quizDao.deleteQuizCascade(id);
-
-      // 防止返回时再次触发“未保存”拦截
       _dirty = false;
-
       if (mounted) {
-        // 返回到列表页；列表页用 watchAllQuizzes() 会自动刷新
         Navigator.of(context).pop();
-        // 也可以加个提示
-        // ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quiz deleted.')));
       }
     }
   }
+
   // ------------------------- 题目导航条 -------------------------
   Widget _buildQuestionNav() {
     final quizId = _loaded?.id ?? _draftId;
     if (quizId == null) {
-      return const Text('Save edit_and_list_quiz first, then add questions.');
+      return const Text('Save quiz first, then add questions.');
     }
 
     return FutureBuilder<List<Question>>(
@@ -187,24 +204,33 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
                   if (mounted) setState(() {});
                 },
                 child: Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red.shade100,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.red),
                   ),
-                  child: Text('${i + 1}',
-                      style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    '${i + 1}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
               ),
             GestureDetector(
               onTap: () async {
+                // 新建题目前，若 quiz 还没真正保存过，先保存一次
                 if (_loaded == null && _draftId != null) {
                   await _save();
+                  // 如果保存失败（_save 里已经弹出错误提示），这里直接 return
+                  if (_loaded == null) return;
                 }
                 final id = _loaded?.id ?? _draftId!;
-                final count = await widget.quizDao.countQuestionsForQuiz(id);
+                final count =
+                await widget.quizDao.countQuestionsForQuiz(id);
+
                 await Navigator.pushNamed(
                   context,
                   '/questionEditor',
@@ -219,15 +245,19 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
                 if (mounted) setState(() {});
               },
               child: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black12,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.black54),
                 ),
-                child: const Text('+',
-                    style: TextStyle(color: Colors.black87, fontSize: 18)),
+                child: const Text(
+                  '+',
+                  style: TextStyle(color: Colors.black87, fontSize: 18),
+                ),
               ),
             ),
           ],
@@ -240,12 +270,12 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, // 我们自己决定何时 pop
+      canPop: false,
       onPopInvoked: (didPop) async {
-        if (didPop) return;                    // 系统已处理就不重复
-        final ok = await _confirmDiscard();    // 弹框；未改动直接 true
+        if (didPop) return;
+        final ok = await _confirmDiscard();
         if (ok && mounted) {
-          Navigator.of(context).pop();         // ← 真正返回上一页
+          Navigator.of(context).pop();
         }
       },
       child: Scaffold(
@@ -254,13 +284,13 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
             icon: const Icon(Icons.arrow_back),
             onPressed: () async {
               final ok = await _confirmDiscard();
-              if (ok && mounted) Navigator.of(context).pop(); // ← 手动返回
+              if (ok && mounted) Navigator.of(context).pop();
             },
           ),
           actions: [
             TextButton(
               onPressed: _save,
-              child: const Text('Save'),//, style: TextStyle(color: Colors.white)
+              child: const Text('Save'),
             ),
           ],
         ),
@@ -286,15 +316,19 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
                 ChoiceChip(
                   label: const Text('ABC'),
                   selected: _optionType == 0,
-                  onSelected: (_) =>
-                      setState(() => {_optionType = 0, _dirty = true}),
+                  onSelected: (_) => setState(() {
+                    _optionType = 0;
+                    _dirty = true;
+                  }),
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
                   label: const Text('123'),
                   selected: _optionType == 1,
-                  onSelected: (_) =>
-                      setState(() => {_optionType = 1, _dirty = true}),
+                  onSelected: (_) => setState(() {
+                    _optionType = 1;
+                    _dirty = true;
+                  }),
                 ),
               ],
             ),
@@ -309,8 +343,10 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
                     max: 100,
                     divisions: 20,
                     label: '$_passRate%',
-                    onChanged: (v) =>
-                        setState(() => {_passRate = v.toInt(), _dirty = true}),
+                    onChanged: (v) => setState(() {
+                      _passRate = v.toInt();
+                      _dirty = true;
+                    }),
                   ),
                 ),
               ],
@@ -318,14 +354,18 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
             SwitchListTile(
               title: const Text('Enable per-question scores'),
               value: _enableScores,
-              onChanged: (v) =>
-                  setState(() => {_enableScores = v, _dirty = true}),
+              onChanged: (v) => setState(() {
+                _enableScores = v;
+                _dirty = true;
+              }),
             ),
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 12),
-            const Text('Questions',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text(
+              'Questions',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
             _buildQuestionNav(),
             const SizedBox(height: 24),
@@ -337,7 +377,8 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
                 if (id == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Please save the edit_and_list_quiz first.')),
+                      content: Text('Please save the quiz first.'),
+                    ),
                   );
                   return;
                 }
@@ -353,9 +394,10 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
             const SizedBox(height: 12),
             TextButton(
               onPressed: _deleteQuiz,
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
               child: const Text('Delete'),
-              // 轻微强调为危险操作（不改你的整体样式）
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
             ),
           ],
         ),

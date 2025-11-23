@@ -35,7 +35,7 @@ class QuizPreviewPage extends StatelessWidget {
   }
 
   Future<_PreviewData> _loadBundle(String quizId) async {
-    final quiz = await quizDao.getQuiz(quizId);
+    final quiz = await quizDao.getQuizById(quizId);
     if (quiz == null) throw StateError('Quiz not found: $quizId');
 
     final qs = await quizDao.getQuestionsByQuiz(quizId);

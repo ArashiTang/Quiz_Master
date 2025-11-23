@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:quiz_master/core/database/db/app_db.dart';
+
 import 'package:quiz_master/core/database/daos/quiz_dao.dart';
+import 'package:quiz_master/core/database/db/app_db.dart';
+import 'package:quiz_master/core/remote/supabase_auth_service.dart';
 
 class QuizListPage extends StatefulWidget {
   final QuizDao quizDao;
@@ -32,17 +34,22 @@ class _QuizListPageState extends State<QuizListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final cardColor = scheme.primary.withOpacity(0.25);
+    final auth = SupabaseAuthService.instance;
+
+    // 用于数据库过滤的 ownerKey（邮箱或 'guest'）
+    final ownerKey = auth.currentOwnerKey;
+
+    // 用于标题展示：已登录显示邮箱，未登录显示 Guest
+    final ownerLabel = auth.currentUser?.email ?? 'Guest';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Local'),
+        title: Text('Local ($ownerLabel)'),
         centerTitle: true,
       ),
       body: Column(
         children: [
-          // 搜索框
+          // ===== 搜索框 =====
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Container(
@@ -65,9 +72,12 @@ class _QuizListPageState extends State<QuizListPage> {
                       ),
                       onChanged: (v) {
                         _debounce?.cancel();
-                        _debounce = Timer(const Duration(milliseconds: 250), () {
-                          setState(() => _keyword = v.trim().toLowerCase());
-                        });
+                        _debounce =
+                            Timer(const Duration(milliseconds: 200), () {
+                              setState(() {
+                                _keyword = v.trim().toLowerCase();
+                              });
+                            });
                       },
                     ),
                   ),
@@ -76,30 +86,29 @@ class _QuizListPageState extends State<QuizListPage> {
             ),
           ),
 
-          // 列表
+          // ===== Quiz 列表 =====
           Expanded(
             child: StreamBuilder<List<Quizze>>(
-              stream: widget.quizDao.watchAllQuizzes(),
-              builder: (context, snap) {
-                final items = (snap.data ?? const <Quizze>[])
+              stream: widget.quizDao.watchQuizzesByOwner(ownerKey),
+              builder: (context, quizSnap) {
+                final list = (quizSnap.data ?? [])
                     .where((q) => _keyword.isEmpty
                     ? true
                     : q.title.toLowerCase().contains(_keyword))
                     .toList();
 
-                if (items.isEmpty) {
+                if (list.isEmpty) {
                   return const Center(child: Text('No quizzes yet'));
                 }
 
                 return ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  itemCount: items.length,
+                  itemCount: list.length,
                   itemBuilder: (ctx, i) {
-                    final q = items[i];
+                    final q = list[i];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 14),
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
                         onTap: () {
                           Navigator.pushNamed(
                             context,
@@ -107,15 +116,16 @@ class _QuizListPageState extends State<QuizListPage> {
                             arguments: q.id,
                           );
                         },
+                        borderRadius: BorderRadius.circular(20),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: cardColor,
+                            color: Colors.purple.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: const [
                               BoxShadow(
                                 color: Colors.black12,
                                 blurRadius: 12,
-                                offset: Offset(0, 6),
+                                offset: Offset(0, 5),
                               )
                             ],
                           ),
@@ -123,7 +133,6 @@ class _QuizListPageState extends State<QuizListPage> {
                               horizontal: 20, vertical: 18),
                           child: Row(
                             children: [
-                              // 文本区域
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,15 +142,14 @@ class _QuizListPageState extends State<QuizListPage> {
                                           ? 'Untitled Quiz'
                                           : q.title,
                                       style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w700,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 6),
                                     Text(
-                                      'Date: ${_fmtDate(q.updatedAt)}',
+                                      'Updated: ${_fmtDate(q.updatedAt)}',
                                       style: const TextStyle(
-                                        fontSize: 16,
                                         color: Colors.black87,
                                       ),
                                     ),

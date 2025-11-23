@@ -11,7 +11,8 @@ class _HomePageState extends State<HomePage> {
   int _tabIndex = 0; // 0=Home, 1=Test Room, 2=Mine
 
   // 轻量样式工具
-  TextStyle get _title => const TextStyle(fontSize: 20, fontWeight: FontWeight.w600);
+  TextStyle get _title =>
+      const TextStyle(fontSize: 20, fontWeight: FontWeight.w600);
   TextStyle get _subtle => const TextStyle(color: Colors.black54);
   BorderRadius get _cardRadius => BorderRadius.circular(16);
 
@@ -23,14 +24,14 @@ class _HomePageState extends State<HomePage> {
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(child: _buildHero()),
-            SliverToBoxAdapter(child: const SizedBox(height: 16)),
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
             SliverToBoxAdapter(child: _buildQuickTiles(context)),
-            SliverToBoxAdapter(child: const SizedBox(height: 16)),
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
             SliverToBoxAdapter(child: _buildLocalQuizRow(context)),
             SliverToBoxAdapter(child: _buildCreateImportRow(context)),
-            SliverToBoxAdapter(child: const SizedBox(height: 16)),
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
             SliverToBoxAdapter(child: _buildCreateTestSection(context)),
-            SliverToBoxAdapter(child: const SizedBox(height: 24)),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
           ],
         ),
       ),
@@ -40,14 +41,23 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _tabIndex,
         onTap: (i) {
           setState(() => _tabIndex = i);
-          // TODO: 未来切换到对应页面：
-          // if (i == 1) Navigator.pushNamed(context, '/testRoom');
-          // if (i == 2) Navigator.pushNamed(context, '/mine');
+
+          // 这里根据按钮跳转页面
+          if (i == 1) {
+            // TODO: 未来 Test Room 首页面建好后，打开路由
+            // Navigator.pushNamed(context, '/testRoomHome');
+          } else if (i == 2) {
+            // 进入 MinePage（你在 app.dart 里已经配过 '/mine'）
+            Navigator.pushNamed(context, '/mine');
+          }
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Test Room'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Mine'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.search), label: 'Test Room'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline), label: 'Mine'),
         ],
       ),
     );
@@ -72,25 +82,30 @@ class _HomePageState extends State<HomePage> {
               color: Colors.white.withOpacity(.8),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.menu_book, size: 40, color: Color(0xFF698CB9)),
+            child: const Icon(Icons.menu_book,
+                size: 40, color: Color(0xFF698CB9)),
           ),
           const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Quiz Master',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    )),
+                Text(
+                  'Quiz Master',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
                 SizedBox(height: 6),
-                Text('Focus on Quiz',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    )),
+                Text(
+                  'Focus on Quiz',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
               ],
             ),
           ),
@@ -101,7 +116,8 @@ class _HomePageState extends State<HomePage> {
 
   // 三个功能砖块
   Widget _buildQuickTiles(BuildContext context) {
-    Widget tile(IconData icon, String title, String subtitle, {VoidCallback? onTap, Color? color}) {
+    Widget tile(IconData icon, String title, String subtitle,
+        {VoidCallback? onTap, Color? color}) {
       return Expanded(
         child: InkWell(
           onTap: onTap,
@@ -118,8 +134,11 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Icon(icon, size: 36, color: Colors.black54),
                 const SizedBox(height: 8),
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.black45)),
+                Text(title,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(subtitle,
+                    style: const TextStyle(
+                        fontSize: 12, color: Colors.black45)),
               ],
             ),
           ),
@@ -132,15 +151,13 @@ class _HomePageState extends State<HomePage> {
       child: Row(
         children: [
           tile(Icons.article_outlined, 'My Record', '', onTap: () {
-            // 进入记录页面
             Navigator.pushNamed(context, '/records');
           }, color: const Color(0xFFFFE5E5)),
           tile(Icons.edit_outlined, 'Go Practice', '', onTap: () {
-            // 进入练习页面
             Navigator.pushNamed(context, '/practiceSelect');
           }, color: const Color(0xFFE9F5EA)),
           tile(Icons.cloud_outlined, 'My Cloud', '', onTap: () {
-            // TODO
+            // TODO: 云端功能
           }, color: const Color(0xFFE7F0FF)),
         ],
       ),
@@ -154,8 +171,10 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: ListTile(
         contentPadding: EdgeInsets.zero,
-        title: const Text('Local Quiz:', style: TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: const Text('Manage your local Quiz', style: TextStyle(color: Colors.black45)),
+        title: const Text('Local Quiz:',
+            style: TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: const Text('Manage your local Quiz',
+            style: TextStyle(color: Colors.black45)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: const [
@@ -165,8 +184,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         onTap: () {
-          // 进入 QuizList
-          Navigator.pushNamed(context, '/quizList'); // 请在 app.dart 映射该路由
+          Navigator.pushNamed(context, '/quizList');
         },
       ),
     );
@@ -190,11 +208,11 @@ class _HomePageState extends State<HomePage> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: _cardRadius,
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
                   color: Colors.black12,
                   blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
@@ -224,7 +242,6 @@ class _HomePageState extends State<HomePage> {
           title: 'Create a new Quiz',
           sub: 'Easily create Quiz',
           onTap: () {
-            // 新建 Quiz：进入编辑页（传 null）
             Navigator.pushNamed(context, '/quizEditor', arguments: null);
           },
         ),
@@ -245,7 +262,9 @@ class _HomePageState extends State<HomePage> {
       return Expanded(
         child: Column(
           children: [
-            Text(num, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+            Text(num,
+                style: const TextStyle(
+                    fontSize: 24, fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text(label, style: const TextStyle(color: Colors.black54)),
           ],
@@ -260,7 +279,8 @@ class _HomePageState extends State<HomePage> {
         children: [
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Create Test', style: TextStyle(fontWeight: FontWeight.w600)),
+            title: const Text('Create Test',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
