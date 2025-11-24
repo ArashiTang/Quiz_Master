@@ -633,18 +633,18 @@ class $QuestionsTable extends Questions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _correctAnswerIdsMeta = const VerificationMeta(
-    'correctAnswerIds',
-  );
+  static const VerificationMeta _correctAnswerTextsMeta =
+      const VerificationMeta('correctAnswerTexts');
   @override
-  late final GeneratedColumn<String> correctAnswerIds = GeneratedColumn<String>(
-    'correct_answer_ids',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('[]'),
-  );
+  late final GeneratedColumn<String> correctAnswerTexts =
+      GeneratedColumn<String>(
+        'correct_answer_texts',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      );
   static const VerificationMeta _scoreMeta = const VerificationMeta('score');
   @override
   late final GeneratedColumn<int> score = GeneratedColumn<int>(
@@ -673,7 +673,7 @@ class $QuestionsTable extends Questions
     questionType,
     numberOfOptions,
     content,
-    correctAnswerIds,
+    correctAnswerTexts,
     score,
     orderIndex,
   ];
@@ -728,12 +728,12 @@ class $QuestionsTable extends Questions
     } else if (isInserting) {
       context.missing(_contentMeta);
     }
-    if (data.containsKey('correct_answer_ids')) {
+    if (data.containsKey('correct_answer_texts')) {
       context.handle(
-        _correctAnswerIdsMeta,
-        correctAnswerIds.isAcceptableOrUnknown(
-          data['correct_answer_ids']!,
-          _correctAnswerIdsMeta,
+        _correctAnswerTextsMeta,
+        correctAnswerTexts.isAcceptableOrUnknown(
+          data['correct_answer_texts']!,
+          _correctAnswerTextsMeta,
         ),
       );
     }
@@ -780,9 +780,9 @@ class $QuestionsTable extends Questions
         DriftSqlType.string,
         data['${effectivePrefix}content'],
       )!,
-      correctAnswerIds: attachedDatabase.typeMapping.read(
+      correctAnswerTexts: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}correct_answer_ids'],
+        data['${effectivePrefix}correct_answer_texts'],
       )!,
       score: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -807,7 +807,7 @@ class Question extends DataClass implements Insertable<Question> {
   final int questionType;
   final int numberOfOptions;
   final String content;
-  final String correctAnswerIds;
+  final String correctAnswerTexts;
   final int score;
   final int orderIndex;
   const Question({
@@ -816,7 +816,7 @@ class Question extends DataClass implements Insertable<Question> {
     required this.questionType,
     required this.numberOfOptions,
     required this.content,
-    required this.correctAnswerIds,
+    required this.correctAnswerTexts,
     required this.score,
     required this.orderIndex,
   });
@@ -828,7 +828,7 @@ class Question extends DataClass implements Insertable<Question> {
     map['question_type'] = Variable<int>(questionType);
     map['number_of_options'] = Variable<int>(numberOfOptions);
     map['content'] = Variable<String>(content);
-    map['correct_answer_ids'] = Variable<String>(correctAnswerIds);
+    map['correct_answer_texts'] = Variable<String>(correctAnswerTexts);
     map['score'] = Variable<int>(score);
     map['order_index'] = Variable<int>(orderIndex);
     return map;
@@ -841,7 +841,7 @@ class Question extends DataClass implements Insertable<Question> {
       questionType: Value(questionType),
       numberOfOptions: Value(numberOfOptions),
       content: Value(content),
-      correctAnswerIds: Value(correctAnswerIds),
+      correctAnswerTexts: Value(correctAnswerTexts),
       score: Value(score),
       orderIndex: Value(orderIndex),
     );
@@ -858,7 +858,9 @@ class Question extends DataClass implements Insertable<Question> {
       questionType: serializer.fromJson<int>(json['questionType']),
       numberOfOptions: serializer.fromJson<int>(json['numberOfOptions']),
       content: serializer.fromJson<String>(json['content']),
-      correctAnswerIds: serializer.fromJson<String>(json['correctAnswerIds']),
+      correctAnswerTexts: serializer.fromJson<String>(
+        json['correctAnswerTexts'],
+      ),
       score: serializer.fromJson<int>(json['score']),
       orderIndex: serializer.fromJson<int>(json['orderIndex']),
     );
@@ -872,7 +874,7 @@ class Question extends DataClass implements Insertable<Question> {
       'questionType': serializer.toJson<int>(questionType),
       'numberOfOptions': serializer.toJson<int>(numberOfOptions),
       'content': serializer.toJson<String>(content),
-      'correctAnswerIds': serializer.toJson<String>(correctAnswerIds),
+      'correctAnswerTexts': serializer.toJson<String>(correctAnswerTexts),
       'score': serializer.toJson<int>(score),
       'orderIndex': serializer.toJson<int>(orderIndex),
     };
@@ -884,7 +886,7 @@ class Question extends DataClass implements Insertable<Question> {
     int? questionType,
     int? numberOfOptions,
     String? content,
-    String? correctAnswerIds,
+    String? correctAnswerTexts,
     int? score,
     int? orderIndex,
   }) => Question(
@@ -893,7 +895,7 @@ class Question extends DataClass implements Insertable<Question> {
     questionType: questionType ?? this.questionType,
     numberOfOptions: numberOfOptions ?? this.numberOfOptions,
     content: content ?? this.content,
-    correctAnswerIds: correctAnswerIds ?? this.correctAnswerIds,
+    correctAnswerTexts: correctAnswerTexts ?? this.correctAnswerTexts,
     score: score ?? this.score,
     orderIndex: orderIndex ?? this.orderIndex,
   );
@@ -908,9 +910,9 @@ class Question extends DataClass implements Insertable<Question> {
           ? data.numberOfOptions.value
           : this.numberOfOptions,
       content: data.content.present ? data.content.value : this.content,
-      correctAnswerIds: data.correctAnswerIds.present
-          ? data.correctAnswerIds.value
-          : this.correctAnswerIds,
+      correctAnswerTexts: data.correctAnswerTexts.present
+          ? data.correctAnswerTexts.value
+          : this.correctAnswerTexts,
       score: data.score.present ? data.score.value : this.score,
       orderIndex: data.orderIndex.present
           ? data.orderIndex.value
@@ -926,7 +928,7 @@ class Question extends DataClass implements Insertable<Question> {
           ..write('questionType: $questionType, ')
           ..write('numberOfOptions: $numberOfOptions, ')
           ..write('content: $content, ')
-          ..write('correctAnswerIds: $correctAnswerIds, ')
+          ..write('correctAnswerTexts: $correctAnswerTexts, ')
           ..write('score: $score, ')
           ..write('orderIndex: $orderIndex')
           ..write(')'))
@@ -940,7 +942,7 @@ class Question extends DataClass implements Insertable<Question> {
     questionType,
     numberOfOptions,
     content,
-    correctAnswerIds,
+    correctAnswerTexts,
     score,
     orderIndex,
   );
@@ -953,7 +955,7 @@ class Question extends DataClass implements Insertable<Question> {
           other.questionType == this.questionType &&
           other.numberOfOptions == this.numberOfOptions &&
           other.content == this.content &&
-          other.correctAnswerIds == this.correctAnswerIds &&
+          other.correctAnswerTexts == this.correctAnswerTexts &&
           other.score == this.score &&
           other.orderIndex == this.orderIndex);
 }
@@ -964,7 +966,7 @@ class QuestionsCompanion extends UpdateCompanion<Question> {
   final Value<int> questionType;
   final Value<int> numberOfOptions;
   final Value<String> content;
-  final Value<String> correctAnswerIds;
+  final Value<String> correctAnswerTexts;
   final Value<int> score;
   final Value<int> orderIndex;
   final Value<int> rowid;
@@ -974,7 +976,7 @@ class QuestionsCompanion extends UpdateCompanion<Question> {
     this.questionType = const Value.absent(),
     this.numberOfOptions = const Value.absent(),
     this.content = const Value.absent(),
-    this.correctAnswerIds = const Value.absent(),
+    this.correctAnswerTexts = const Value.absent(),
     this.score = const Value.absent(),
     this.orderIndex = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -985,7 +987,7 @@ class QuestionsCompanion extends UpdateCompanion<Question> {
     this.questionType = const Value.absent(),
     this.numberOfOptions = const Value.absent(),
     required String content,
-    this.correctAnswerIds = const Value.absent(),
+    this.correctAnswerTexts = const Value.absent(),
     this.score = const Value.absent(),
     required int orderIndex,
     this.rowid = const Value.absent(),
@@ -999,7 +1001,7 @@ class QuestionsCompanion extends UpdateCompanion<Question> {
     Expression<int>? questionType,
     Expression<int>? numberOfOptions,
     Expression<String>? content,
-    Expression<String>? correctAnswerIds,
+    Expression<String>? correctAnswerTexts,
     Expression<int>? score,
     Expression<int>? orderIndex,
     Expression<int>? rowid,
@@ -1010,7 +1012,8 @@ class QuestionsCompanion extends UpdateCompanion<Question> {
       if (questionType != null) 'question_type': questionType,
       if (numberOfOptions != null) 'number_of_options': numberOfOptions,
       if (content != null) 'content': content,
-      if (correctAnswerIds != null) 'correct_answer_ids': correctAnswerIds,
+      if (correctAnswerTexts != null)
+        'correct_answer_texts': correctAnswerTexts,
       if (score != null) 'score': score,
       if (orderIndex != null) 'order_index': orderIndex,
       if (rowid != null) 'rowid': rowid,
@@ -1023,7 +1026,7 @@ class QuestionsCompanion extends UpdateCompanion<Question> {
     Value<int>? questionType,
     Value<int>? numberOfOptions,
     Value<String>? content,
-    Value<String>? correctAnswerIds,
+    Value<String>? correctAnswerTexts,
     Value<int>? score,
     Value<int>? orderIndex,
     Value<int>? rowid,
@@ -1034,7 +1037,7 @@ class QuestionsCompanion extends UpdateCompanion<Question> {
       questionType: questionType ?? this.questionType,
       numberOfOptions: numberOfOptions ?? this.numberOfOptions,
       content: content ?? this.content,
-      correctAnswerIds: correctAnswerIds ?? this.correctAnswerIds,
+      correctAnswerTexts: correctAnswerTexts ?? this.correctAnswerTexts,
       score: score ?? this.score,
       orderIndex: orderIndex ?? this.orderIndex,
       rowid: rowid ?? this.rowid,
@@ -1059,8 +1062,8 @@ class QuestionsCompanion extends UpdateCompanion<Question> {
     if (content.present) {
       map['content'] = Variable<String>(content.value);
     }
-    if (correctAnswerIds.present) {
-      map['correct_answer_ids'] = Variable<String>(correctAnswerIds.value);
+    if (correctAnswerTexts.present) {
+      map['correct_answer_texts'] = Variable<String>(correctAnswerTexts.value);
     }
     if (score.present) {
       map['score'] = Variable<int>(score.value);
@@ -1082,7 +1085,7 @@ class QuestionsCompanion extends UpdateCompanion<Question> {
           ..write('questionType: $questionType, ')
           ..write('numberOfOptions: $numberOfOptions, ')
           ..write('content: $content, ')
-          ..write('correctAnswerIds: $correctAnswerIds, ')
+          ..write('correctAnswerTexts: $correctAnswerTexts, ')
           ..write('score: $score, ')
           ..write('orderIndex: $orderIndex, ')
           ..write('rowid: $rowid')
@@ -2651,7 +2654,7 @@ typedef $$QuestionsTableCreateCompanionBuilder =
       Value<int> questionType,
       Value<int> numberOfOptions,
       required String content,
-      Value<String> correctAnswerIds,
+      Value<String> correctAnswerTexts,
       Value<int> score,
       required int orderIndex,
       Value<int> rowid,
@@ -2663,7 +2666,7 @@ typedef $$QuestionsTableUpdateCompanionBuilder =
       Value<int> questionType,
       Value<int> numberOfOptions,
       Value<String> content,
-      Value<String> correctAnswerIds,
+      Value<String> correctAnswerTexts,
       Value<int> score,
       Value<int> orderIndex,
       Value<int> rowid,
@@ -2739,8 +2742,8 @@ class $$QuestionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get correctAnswerIds => $composableBuilder(
-    column: $table.correctAnswerIds,
+  ColumnFilters<String> get correctAnswerTexts => $composableBuilder(
+    column: $table.correctAnswerTexts,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2832,8 +2835,8 @@ class $$QuestionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get correctAnswerIds => $composableBuilder(
-    column: $table.correctAnswerIds,
+  ColumnOrderings<String> get correctAnswerTexts => $composableBuilder(
+    column: $table.correctAnswerTexts,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2896,8 +2899,8 @@ class $$QuestionsTableAnnotationComposer
   GeneratedColumn<String> get content =>
       $composableBuilder(column: $table.content, builder: (column) => column);
 
-  GeneratedColumn<String> get correctAnswerIds => $composableBuilder(
-    column: $table.correctAnswerIds,
+  GeneratedColumn<String> get correctAnswerTexts => $composableBuilder(
+    column: $table.correctAnswerTexts,
     builder: (column) => column,
   );
 
@@ -2991,7 +2994,7 @@ class $$QuestionsTableTableManager
                 Value<int> questionType = const Value.absent(),
                 Value<int> numberOfOptions = const Value.absent(),
                 Value<String> content = const Value.absent(),
-                Value<String> correctAnswerIds = const Value.absent(),
+                Value<String> correctAnswerTexts = const Value.absent(),
                 Value<int> score = const Value.absent(),
                 Value<int> orderIndex = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -3001,7 +3004,7 @@ class $$QuestionsTableTableManager
                 questionType: questionType,
                 numberOfOptions: numberOfOptions,
                 content: content,
-                correctAnswerIds: correctAnswerIds,
+                correctAnswerTexts: correctAnswerTexts,
                 score: score,
                 orderIndex: orderIndex,
                 rowid: rowid,
@@ -3013,7 +3016,7 @@ class $$QuestionsTableTableManager
                 Value<int> questionType = const Value.absent(),
                 Value<int> numberOfOptions = const Value.absent(),
                 required String content,
-                Value<String> correctAnswerIds = const Value.absent(),
+                Value<String> correctAnswerTexts = const Value.absent(),
                 Value<int> score = const Value.absent(),
                 required int orderIndex,
                 Value<int> rowid = const Value.absent(),
@@ -3023,7 +3026,7 @@ class $$QuestionsTableTableManager
                 questionType: questionType,
                 numberOfOptions: numberOfOptions,
                 content: content,
-                correctAnswerIds: correctAnswerIds,
+                correctAnswerTexts: correctAnswerTexts,
                 score: score,
                 orderIndex: orderIndex,
                 rowid: rowid,

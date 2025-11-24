@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:quiz_master/core/database/db/app_db.dart';
 import 'package:quiz_master/core/database/daos/quiz_dao.dart';
 import 'package:quiz_master/core/database/daos/practice_dao.dart';
+import 'core/remote/supabase_auth_service.dart';
 
 // ===== 页面 =====
 
@@ -33,6 +34,7 @@ import 'features/account/presentation/pages/change_name_page.dart';
 
 //Cloud
 import 'features/cloud/presentation/pages/cloud_quiz_list_page.dart';
+import 'features/cloud/presentation/pages/cloud_quiz_detail_page.dart';
 import 'features/cloud/presentation/pages/import_quiz_page.dart';
 
 class QuizApp extends StatelessWidget {
@@ -53,52 +55,70 @@ class QuizApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
       ),
 
-      /// 默认入口：HomePage（里面有底部导航切到 Test Room / Mine）
       initialRoute: '/',
 
+      /// 固定路由（无参数的页面）
       routes: {
-        // ===== 主导航 =====
         '/': (_) => const HomePage(),
-        '/mine': (_) => const MinePage(), // 方便以后从别处跳到个人中心
+        '/mine': (_) => const MinePage(),
 
-        // ===== Quiz 本地编辑 =====
+        // 本地 Quiz
         '/quizList': (_) => QuizListPage(quizDao: quizDao),
         '/quizEditor': (_) => QuizEditorPage(quizDao: quizDao),
         '/questionEditor': (_) => QuestionEditorPage(quizDao: quizDao),
         '/quizPreview': (_) => QuizPreviewPage(quizDao: quizDao),
 
-        // ===== Practice 自测 =====
+        // Practice
         '/practiceSelect': (_) => PracticeSelectPage(quizDao: quizDao),
-        '/practiceRun': (ctx) {
-          final quizId = ModalRoute.of(ctx)!.settings.arguments as String;
-          return PracticeRunPage(
-            quizId: quizId,
-            quizDao: quizDao,
-            practiceDao: practiceDao,
-          );
-        },
+        '/records': (_) => RecordListPage(practiceDao: practiceDao, quizDao: quizDao),
 
-        // ===== Record 记录 =====
-        '/records': (_) =>
-            RecordListPage(practiceDao: practiceDao, quizDao: quizDao),
-        '/recordDetail': (ctx) {
-          final runId = ModalRoute.of(ctx)!.settings.arguments as String;
-          return RecordDetailPage(
-            runId: runId,
-            practiceDao: practiceDao,
-            quizDao: quizDao,
-          );
-        },
-
-        // ===== 账号 / Supabase Auth =====
+        // Auth
         '/login': (_) => const LoginPage(),
         '/register': (_) => const RegisterPage(),
         '/resetPassword': (_) => const ResetPasswordPage(),
         '/userProfile': (_) => const UserProfilePage(),
 
-        // ===== Cloud =====
+        // Cloud 固定页面（无参数）
         '/cloudQuizList': (_) => const CloudQuizListPage(),
+
         '/importQuiz': (_) => ImportQuizPage(quizDao: quizDao),
+      },
+
+      /// 动态路由（可接收参数的页面）
+      onGenerateRoute: (settings) {
+        // ========== Cloud Quiz Detail ==========
+        if (settings.name == '/cloudQuizDetail') {
+          final summary = settings.arguments as CloudQuizSummary;
+          return MaterialPageRoute(
+            builder: (_) => CloudQuizDetailPage(summary: summary),
+          );
+        }
+
+        // ========== Practice Run ==========
+        if (settings.name == '/practiceRun') {
+          final quizId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (_) => PracticeRunPage(
+              quizId: quizId,
+              quizDao: quizDao,
+              practiceDao: practiceDao,
+            ),
+          );
+        }
+
+        // ========== Record Detail ==========
+        if (settings.name == '/recordDetail') {
+          final runId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (_) => RecordDetailPage(
+              runId: runId,
+              practiceDao: practiceDao,
+              quizDao: quizDao,
+            ),
+          );
+        }
+
+        return null;
       },
     );
   }

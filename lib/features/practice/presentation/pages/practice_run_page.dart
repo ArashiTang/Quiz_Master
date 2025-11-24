@@ -31,7 +31,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
   Quizze? _quiz;
   final List<Question> _questions = [];
   final Map<String, List<QuizOption>> _options = {}; // qId -> options
-  final Map<String, GlobalKey> _qKeys = {};          // 用于目录定位
+  final Map<String, GlobalKey> _qKeys = {}; // 用于目录定位
 
   /// 题ID -> 选中 optionId 集合（仅内存，不落库）
   final Map<String, Set<String>> _picked = {};
@@ -39,7 +39,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
   // 计时
   Timer? _timer;
   int _seconds = 0;
-  int? _startedAtMs; // ← 进入页面的真实开始时间（用于写 DB）
+  int? _startedAtMs; // 进入页面的真实开始时间（用于写 DB）
 
   bool _loading = true;
 
@@ -93,26 +93,20 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     });
   }
 
-  // ---------- 工具 ----------
-  Set<String> _parseCorrectIds(String raw) {
-    if (raw.isEmpty) return {};
+  // ---------- 工具：解析正确答案“文本数组” ----------
+  /// 本地 Questions 表里现在存的是 correctAnswerTexts（JSON 字符串）
+  /// 这里解析成 Set<String>
+  Set<String> _parseCorrectTexts(String raw) {
+    if (raw.isEmpty) return <String>{};
     try {
       final decoded = jsonDecode(raw);
       if (decoded is List) {
         return decoded.map((e) => e.toString()).toSet();
       }
-    } catch (_) {}
-    try {
-      final decoded = jsonDecode(raw.replaceAll("'", '"'));
-      if (decoded is List) {
-        return decoded.map((e) => e.toString()).toSet();
-      }
-    } catch (_) {}
-    final cleaned = raw.replaceAll(RegExp(r'[\[\]\s]'), '');
-    if (cleaned.contains(',')) {
-      return cleaned.split(',').where((s) => s.isNotEmpty).toSet();
+    } catch (_) {
+      // 如果未来出现脏数据，直接当没有正确答案处理
     }
-    return {cleaned};
+    return <String>{};
   }
 
   String _labelFor(int index) {
@@ -138,9 +132,9 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     final itemKey = _qKeys[qId];
     if (itemKey == null) return;
 
-    _scaffoldKey.currentState?.closeEndDrawer();                // 1) 关闭抽屉
-    await Future.delayed(const Duration(milliseconds: 250));     // 2) 等抽屉动画
-    await WidgetsBinding.instance.endOfFrame;                    // 3) 等一帧
+    _scaffoldKey.currentState?.closeEndDrawer(); // 1) 关闭抽屉
+    await Future.delayed(const Duration(milliseconds: 250)); // 2) 等抽屉动画
+    await WidgetsBinding.instance.endOfFrame; // 3) 等一帧
 
     final listCtx = _listKey.currentContext;
     final itemCtx = itemKey.currentContext;
@@ -152,7 +146,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     final listTop = listBox.localToGlobal(Offset.zero).dy;
     final itemTop = itemBox.localToGlobal(Offset.zero).dy;
 
-    final delta = itemTop - listTop;              // 目标相对滚动位移
+    final delta = itemTop - listTop; // 目标相对滚动位移
     final desired = _scrollController.offset + delta - 12; // 顶部留 12px
 
     final min = 0.0;
@@ -182,18 +176,31 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     // 不落库 —— 直到 Submit 时才写 DB
   }
 
+  /// 按“文本”判题：
+  /// - 从 Question.correctAnswerTexts 解析出目标文本集合
+  /// - 根据选择的 optionId 找到对应文本集合
+  /// - 两个集合完全一致则判为正确
   bool _judgeCorrect(Question q, Set<String> chosen) {
-    try {
-      final target = _parseCorrectIds(q.correctAnswerIds);
-      return target.isNotEmpty &&
-          target.length == chosen.length &&
-          target.containsAll(chosen);
-    } catch (_) {
-      return false;
-    }
+    if (chosen.isEmpty) return false;
+
+    // 1. 解析本题的“正确答案文本列表”
+    final targetTexts = _parseCorrectTexts(q.correctAnswerTexts);
+    if (targetTexts.isEmpty) return false;
+
+    // 2. 根据选中的 optionId 找到对应文本
+    final opts = _options[q.id] ?? const <QuizOption>[];
+    final chosenTexts = opts
+        .where((o) => chosen.contains(o.id))
+        .map((o) => o.textValue)
+        .toSet();
+
+    // 3. 文本集合相同则判正确
+    return targetTexts.length == chosenTexts.length &&
+        targetTexts.containsAll(chosenTexts);
   }
 
   // ---------- 退出/提交 ----------
+
   Future<bool> _confirmExit() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -314,7 +321,8 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
                 _formatClock(_seconds),
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
+                style:
+                const TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -327,7 +335,8 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
               padding: const EdgeInsets.symmetric(vertical: 12),
               itemBuilder: (_, i) {
                 final q = _questions[i];
-                final done = (_picked[q.id] != null && _picked[q.id]!.isNotEmpty);
+                final done =
+                (_picked[q.id] != null && _picked[q.id]!.isNotEmpty);
                 return ListTile(
                   leading: CircleAvatar(
                     radius: 10,
@@ -359,9 +368,13 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
                     spacing: 12,
                     runSpacing: 8,
                     children: [
-                      Chip(label: Text('Option: ${quiz.optionType == 0 ? 'ABC' : '123'}')),
+                      Chip(
+                          label: Text(
+                              'Option: ${quiz.optionType == 0 ? 'ABC' : '123'}')),
                       Chip(label: Text('Pass: ${quiz.passRate}%')),
-                      Chip(label: Text('Scores: ${quiz.enableScores ? 'On' : 'Off'}')),
+                      Chip(
+                          label: Text(
+                              'Scores: ${quiz.enableScores ? 'On' : 'Off'}')),
                     ],
                   ),
                 ),
@@ -374,7 +387,8 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
                   key: _qKeys[_questions[i].id],
                   index: i,
                   question: _questions[i],
-                  options: _options[_questions[i].id] ?? const <QuizOption>[],
+                  options:
+                  _options[_questions[i].id] ?? const <QuizOption>[],
                   picked: _picked[_questions[i].id] ?? <String>{},
                   labelBuilder: _labelFor,
                   onToggle: (optId) => _togglePick(_questions[i], optId),
@@ -390,7 +404,8 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
                   height: 52,
                   child: OutlinedButton(
                     onPressed: _submit,
-                    child: const Text('Submit', style: TextStyle(fontSize: 18)),
+                    child:
+                    const Text('Submit', style: TextStyle(fontSize: 18)),
                   ),
                 ),
               ),
@@ -437,10 +452,12 @@ class _QuestionCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(width: 8),
                 Chip(
-                  label: Text(question.questionType == 1 ? 'Multiple' : 'Single'),
+                  label:
+                  Text(question.questionType == 1 ? 'Multiple' : 'Single'),
                 ),
                 const SizedBox(width: 8),
-                if (enableScores) Chip(label: Text('Score: ${question.score ?? 1}')),
+                if (enableScores)
+                  Chip(label: Text('Score: ${question.score ?? 1}')),
               ],
             ),
             const SizedBox(height: 8),

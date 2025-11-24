@@ -18,7 +18,6 @@ class ImportQuizPage extends StatefulWidget {
 }
 
 class _ImportQuizPageState extends State<ImportQuizPage> {
-  // ✅ 用全局单例 / 工厂，而不是 SupabaseAuthService()
   final SupabaseAuthService _auth = SupabaseAuthService.instance;
 
   final TextEditingController _codeCtrl = TextEditingController();

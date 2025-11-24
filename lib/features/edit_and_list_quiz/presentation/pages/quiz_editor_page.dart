@@ -175,7 +175,7 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
           'question_type': q.questionType,
           'number_of_options': q.numberOfOptions,
           'content': q.content,
-          'correct_answer_ids': q.correctAnswerIds,
+          'correct_answer_ids': q.correctAnswerTexts,
           'score': q.score,
         });
 

@@ -10,10 +10,10 @@ import 'package:quiz_master/core/database/utils/ids.dart';
 /// 路由参数：从 QuizEditor 进入时传入
 class QuestionEditorArgs {
   final String quizId;
-  final String? questionId;   // null 表示新建
-  final int optionStyle;      // 0=ABC, 1=123（跟随 edit_and_list_quiz 设置）
-  final bool enableScores;    // 跟随 edit_and_list_quiz 设置
-  final int? initialOrder;    // 新建时建议题序
+  final String? questionId; // null 表示新建
+  final int optionStyle; // 0=ABC, 1=123（跟随 edit_and_list_quiz 设置）
+  final bool enableScores; // 跟随 edit_and_list_quiz 设置
+  final int? initialOrder; // 新建时建议题序
 
   const QuestionEditorArgs({
     required this.quizId,
@@ -39,10 +39,10 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
   late bool _enableScores;
 
   // 题目状态
-  Question? _loaded;     // 你项目里若生成名是 QuestionsData，请把类型改掉
+  Question? _loaded; // 如果生成类名是 QuestionsData，请改成对应类型
   late String _questionId;
-  bool _multiple = false;      // false=Single, true=Multiple
-  int _optionCount = 4;        // 2..8
+  bool _multiple = false; // false = Single, true = Multiple
+  int _optionCount = 4; // 2..8
   int _orderIndex = 1;
   int _score = 1;
 
@@ -50,7 +50,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
   final _scoreCtrl = TextEditingController(text: '1');
   final List<TextEditingController> _optCtrls = [];
   final List<String> _optIds = [];
-  final Set<String> _correctIds = {};
+  final Set<String> _correctIds = {}; // 仍然用 optionId 做“当前页面”的勾选标记
 
   bool _dirty = false;
 
@@ -71,7 +71,8 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
     if (_inited) return;
     _inited = true;
 
-    final args = ModalRoute.of(context)!.settings.arguments as QuestionEditorArgs;
+    final args =
+    ModalRoute.of(context)!.settings.arguments as QuestionEditorArgs;
     _quizId = args.quizId;
     _optionStyle = args.optionStyle;
     _enableScores = args.enableScores;
@@ -82,8 +83,8 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
     if (a.questionId == null) {
       // 新建
       _questionId = newId('q');
-      _orderIndex = a.initialOrder ??
-          (await widget.quizDao.countQuestionsForQuiz(_quizId)) + 1;
+      _orderIndex =
+          a.initialOrder ?? (await widget.quizDao.countQuestionsForQuiz(_quizId)) + 1;
       _scoreCtrl.text = '$_score';
       setState(() {});
       return;
@@ -109,13 +110,27 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
         _optCtrls.add(TextEditingController(text: o.textValue));
         _optIds.add(o.id);
       }
-      // 正确答案
-      if (q.correctAnswerIds.isNotEmpty) {
-        final List decoded = jsonDecode(q.correctAnswerIds);
-        _correctIds
-          ..clear()
-          ..addAll(decoded.cast<String>());
+
+      // 正确答案：现在是“文本数组” correctAnswerTexts
+      _correctIds.clear();
+      if (q.correctAnswerTexts.isNotEmpty) {
+        try {
+          final List decoded = jsonDecode(q.correctAnswerTexts);
+          final Set<String> correctTextSet =
+          decoded.cast<String>().toSet(); // 正确答案文本集合
+
+          // 根据“选项文本”来反推哪些选项是正确的，并记录其 optionId
+          for (int i = 0; i < opts.length; i++) {
+            final opt = opts[i];
+            if (correctTextSet.contains(opt.textValue)) {
+              _correctIds.add(opt.id);
+            }
+          }
+        } catch (_) {
+          // 万一历史数据格式有问题，直接忽略，不崩
+        }
       }
+
       setState(() {});
     }
   }
@@ -124,7 +139,9 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
   void dispose() {
     _stemCtrl.dispose();
     _scoreCtrl.dispose();
-    for (final c in _optCtrls) c.dispose();
+    for (final c in _optCtrls) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -177,13 +194,26 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
   }
 
   Future<void> _save() async {
+    // 1. 根据当前“选中的 optionId 列表”，提取对应的“选项文本”
+    final List<String> correctTexts = [];
+    for (int i = 0; i < _optionCount; i++) {
+      final id = _optIds[i];
+      if (_correctIds.contains(id)) {
+        final text = _optCtrls[i].text.trim();
+        if (text.isNotEmpty) {
+          correctTexts.add(text);
+        }
+      }
+    }
+
     final qComp = QuestionsCompanion(
       id: Value(_questionId),
       quizId: Value(_quizId),
       questionType: Value(_multiple ? 1 : 0),
       numberOfOptions: Value(_optionCount),
       content: Value(_stemCtrl.text),
-      correctAnswerIds: Value(jsonEncode(_correctIds.toList())),
+      // ✅ 现在存的是“正确答案文本数组”的 JSON
+      correctAnswerTexts: Value(jsonEncode(correctTexts)),
       score: Value(_enableScores ? _score : 1),
       orderIndex: Value(_orderIndex),
     );
@@ -239,7 +269,8 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Are you sure you want to go back to the previous page?'),
+        title: const Text(
+            'Are you sure you want to go back to the previous page?'),
         content: const Text("You haven't saved yet."),
         actions: [
           TextButton(
@@ -277,8 +308,8 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
           title: Text(title),
           actions: [
             TextButton(
-                onPressed: _save,
-                child: const Text('Save')
+              onPressed: _save,
+              child: const Text('Save'),
             ),
           ],
         ),
@@ -296,7 +327,8 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
                     setState(() {
                       _multiple = false;
                       if (_correctIds.length > 1) {
-                        final keep = _correctIds.isEmpty ? null : _correctIds.first;
+                        final keep =
+                        _correctIds.isEmpty ? null : _correctIds.first;
                         _correctIds.clear();
                         if (keep != null) _correctIds.add(keep);
                       }
@@ -309,7 +341,10 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
                   label: const Text('Multiple'),
                   selected: _multiple,
                   onSelected: (_) {
-                    setState(() { _multiple = true; _dirty = true; });
+                    setState(() {
+                      _multiple = true;
+                      _dirty = true;
+                    });
                   },
                 ),
               ],
@@ -320,9 +355,11 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
             Row(
               children: [
                 const Text('Number of Options:  '),
-                IconButton(onPressed: _removeOption, icon: const Icon(Icons.remove)),
+                IconButton(
+                    onPressed: _removeOption, icon: const Icon(Icons.remove)),
                 Text('$_optionCount'),
-                IconButton(onPressed: _addOption, icon: const Icon(Icons.add)),
+                IconButton(
+                    onPressed: _addOption, icon: const Icon(Icons.add)),
               ],
             ),
             const SizedBox(height: 12),

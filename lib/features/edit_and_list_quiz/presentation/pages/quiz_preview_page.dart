@@ -13,13 +13,13 @@ class QuizPreviewArgs {
 
 /// 预览内部用的聚合模型
 class _PreviewQuestion {
-  final Question question;            // 若你生成名是 QuestionsData，请替换
-  final List<QuizOption> options;     // 若你生成名是 QuizOptionsData，请替换
+  final Question question;
+  final List<QuizOption> options;
   _PreviewQuestion(this.question, this.options);
 }
 
 class _PreviewData {
-  final Quizze quiz;                   // 若你生成名是 QuizzesData，请替换
+  final Quizze quiz;
   final List<_PreviewQuestion> questions;
   _PreviewData(this.quiz, this.questions);
 }
@@ -135,35 +135,21 @@ class _QuestionCard extends StatelessWidget {
     required this.optionLabel,
   });
 
-  // 解析存储在 Question.correctAnswerIds 的正确选项 id 列表（标准保存为 JSON 数组）
-  Set<String> _parseCorrectIds(String raw) {
-    if (raw.isEmpty) return {};
-    // 1) 标准 JSON: '["id1","id2"]'
+  /// 解析 Question.correctAnswerTexts 里存的 JSON 字符串（["A text", "B text"]）
+  List<String> _parseCorrectTexts(String raw) {
+    if (raw.isEmpty) return const [];
     try {
       final decoded = jsonDecode(raw);
       if (decoded is List) {
-        return decoded.map((e) => e.toString()).toSet();
+        return decoded.map((e) => e.toString()).toList();
       }
     } catch (_) {}
-    // 2) 单引号 JSON: "['id1','id2']"
-    try {
-      final decoded = jsonDecode(raw.replaceAll("'", '"'));
-      if (decoded is List) {
-        return decoded.map((e) => e.toString()).toSet();
-      }
-    } catch (_) {}
-    // 3) 容错：逗号分隔 'id1,id2' 或 '[id1,id2]'
-    final cleaned = raw.replaceAll(RegExp(r'[\[\]\s]'), '');
-    if (cleaned.contains(',')) {
-      return cleaned.split(',').where((s) => s.isNotEmpty).toSet();
-    }
-    // 4) 单个 id
-    return {cleaned};
+    return const [];
   }
 
   @override
   Widget build(BuildContext context) {
-    final correct = _parseCorrectIds(data.question.correctAnswerIds);
+    final correctTexts = _parseCorrectTexts(data.question.correctAnswerTexts);
 
     return Card(
       child: Padding(
@@ -222,12 +208,14 @@ class _QuestionCard extends StatelessWidget {
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: correct.contains(data.options[i].id)
+                                  color: correctTexts
+                                      .contains(data.options[i].textValue)
                                       ? Colors.green
                                       : Colors.grey.shade400,
                                 ),
                                 borderRadius: BorderRadius.circular(8),
-                                color: correct.contains(data.options[i].id)
+                                color: correctTexts
+                                    .contains(data.options[i].textValue)
                                     ? Colors.green.withOpacity(0.06)
                                     : null,
                               ),

@@ -1,22 +1,25 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show Value;
 import 'package:quiz_master/core/database/daos/quiz_dao.dart';
 import 'package:quiz_master/core/database/db/app_db.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:drift/drift.dart' show Value;
 
 /// ================= Cloud Quiz Models =================
 /// 列表页用到的简单信息
 class CloudQuizSummary {
   final String id;          // cloud_quizzes.id
   final String title;       // cloud_quizzes.title
-  /// 注意：这里字段名仍叫 ownerKey，但实际映射的是表里的 owner_id（uuid）
-  final String ownerKey;    // cloud_quizzes.owner_id
+  final String? description;
+  final String ownerKey;    // cloud_quizzes.owner_id（或 owner_email）
   final DateTime createdAt; // cloud_quizzes.created_at
   final String shareCode;   // cloud_quizzes.share_code（分享码）
 
   CloudQuizSummary({
     required this.id,
     required this.title,
+    this.description,
     required this.ownerKey,
     required this.createdAt,
     required this.shareCode,
@@ -26,10 +29,10 @@ class CloudQuizSummary {
     return CloudQuizSummary(
       id: map['id'] as String,
       title: (map['title'] ?? '') as String,
-      // Supabase 表里现在是 owner_id，没有 owner_key
+      description: map['description'] as String?,
       ownerKey: (map['owner_id'] ?? '') as String,
       createdAt: DateTime.parse(map['created_at'] as String),
-      shareCode: (map['share_code'] ?? '') as String,
+      shareCode: (map['id'] ?? '') as String,
     );
   }
 }
@@ -190,7 +193,7 @@ class SupabaseAuthService {
   }
 
   // =========================================================
-  // 上传 Quiz 到云端
+  // 上传 Quiz 到云端（使用 correct_answer_texts）
   // =========================================================
   ///
   /// [quiz]：一个 map，对应 cloud_quizzes 的字段（不含 owner_id）
@@ -234,13 +237,20 @@ class SupabaseAuthService {
     for (final q in questions) {
       final orderIndex = q['order_index'] as int;
 
+      // 关键：从 map 里取“正确答案文本 JSON”
+      // 你在 QuizEditor 里构造 payload 时，只要填上 correct_answer_texts 或 correctAnswerTexts 即可
+      final String correctAnswerTexts =
+          (q['correct_answer_texts'] as String?) ??
+              (q['correctAnswerTexts'] as String?) ??
+              '[]';
+
       final questionInsert = {
         'quiz_id': quizId,
         'order_index': orderIndex,
         'question_type': q['question_type'],
         'number_of_options': q['number_of_options'],
         'content': q['content'],
-        'correct_answer_ids': q['correct_answer_ids'],
+        'correct_answer_texts': correctAnswerTexts,
         'score': q['score'],
       };
 
@@ -294,15 +304,21 @@ class SupabaseAuthService {
         .eq('owner_id', ownerId)
         .order('created_at', ascending: false);
 
-    final list = (rows as List)
-        .map((row) => CloudQuizSummary.fromMap(row as Map<String, dynamic>))
-        .toList();
-
-    return list;
+    return (rows as List<dynamic>).map((row) {
+      final map = row as Map<String, dynamic>;
+      return CloudQuizSummary(
+        id: map['id'] as String,
+        title: map['title'] as String? ?? '',
+        description: map['description'] as String?,
+        ownerKey: map['owner_id'] as String? ?? '',
+        createdAt: DateTime.parse(map['created_at'] as String),
+        shareCode: map['id'] as String,
+      );
+    }).toList();
   }
 
   // =========================================================
-  // 从云端导入 Quiz 到本地
+  // 从云端导入 Quiz 到本地（使用 correct_answer_texts）
   // =========================================================
   Future<void> importQuizFromCloud({
     required String shareCode,
@@ -313,11 +329,13 @@ class SupabaseAuthService {
       throw Exception('Please login first.');
     }
 
-    // 1. 用 share_code 找到云端 quiz
+    // 1. 用 shareCode（其实就是 quiz 的 id）找到云端 quiz
     final cloudQuiz = await _client
         .from('cloud_quizzes')
-        .select()
-        .eq('share_code', shareCode) // 用分享码，不是 id
+        .select(
+      'id, title, description, option_type, pass_rate, enable_scores',
+    )
+        .eq('id', shareCode)
         .maybeSingle();
 
     if (cloudQuiz == null) {
@@ -326,34 +344,45 @@ class SupabaseAuthService {
 
     final cloudQuizId = cloudQuiz['id'] as String;
 
-    // 2. 取云端 questions
-    final cloudQuestions = await _client
+    // 2. 取 questions（已经是“正确答案文本”字段）
+    final List<dynamic> cloudQuestions = await _client
         .from('cloud_questions')
-        .select()
-        .eq('quiz_id', cloudQuizId) as List;
+        .select(
+      'id, quiz_id, order_index, question_type, '
+          'number_of_options, content, correct_answer_texts, score',
+    )
+        .eq('quiz_id', cloudQuizId);
 
-    // 3. 取云端 options（先拿所有 question_id）
-    final questionIds =
-    cloudQuestions.map((q) => q['id'] as String).toList();
-
-    final cloudOptions = await _client
+    // 3. 取 options
+    final List<dynamic> cloudOptions = await _client
         .from('cloud_options')
-        .select()
-        .inFilter('question_id', questionIds) as List;
+        .select('id, question_id, order_index, text_value')
+        .inFilter(
+      'question_id',
+      cloudQuestions.map((q) => q['id'] as String).toList(),
+    );
+
+    // 按 question_id 把 options 分组
+    final Map<String, List<Map<String, dynamic>>> optionsByQuestion = {};
+    for (final o in cloudOptions) {
+      final map = Map<String, dynamic>.from(o as Map);
+      final qid = map['question_id'] as String;
+      optionsByQuestion.putIfAbsent(qid, () => <Map<String, dynamic>>[]).add(map);
+    }
 
     // ======================
-    // 转成本地结构
+    //       本地化处理
     // ======================
+
     final newQuizId = const Uuid().v4();
     final nowTs = DateTime.now().millisecondsSinceEpoch;
 
-    // 构造本地 Quiz（对照 QuizzesCompanion.insert 的签名）
-    final newQuiz = QuizzesCompanion.insert(
+    // 本地 quiz
+    final quizCompanion = QuizzesCompanion.insert(
       id: newQuizId,
-      title: (cloudQuiz['title'] as String?) ?? '',
-      description: Value((cloudQuiz['description'] as String?) ?? ''),
-      optionType: Value((cloudQuiz['option_type'] as int?) ?? 0),
-      // 云端 pass_rate 是 smallint，本地是 int，这里转成 int
+      title: cloudQuiz['title'] as String? ?? '',
+      description: Value(cloudQuiz['description'] as String? ?? ''),
+      optionType: Value(cloudQuiz['option_type'] as int? ?? 0),
       passRate: Value((cloudQuiz['pass_rate'] as num?)?.toInt() ?? 60),
       enableScores: Value(cloudQuiz['enable_scores'] as bool? ?? false),
       createdAt: nowTs,
@@ -361,47 +390,55 @@ class SupabaseAuthService {
       ownerKey: ownerKey,
     );
 
-    // old → new question id 映射
-    final Map<String, String> qidMap = {};
+    final List<QuestionsCompanion> localQuestions = [];
+    final List<QuizOptionsCompanion> localOptions = [];
 
-    // build local questions
-    final localQuestions =
-    cloudQuestions.map<QuestionsCompanion>((q) {
-      final oldId = q['id'] as String;
-      final newId = const Uuid().v4();
-      qidMap[oldId] = newId;
+    for (final q in cloudQuestions) {
+      final qMap = Map<String, dynamic>.from(q as Map);
+      final oldQid = qMap['id'] as String;
+      final newQid = const Uuid().v4();
 
-      return QuestionsCompanion.insert(
-        id: newId,
-        quizId: newQuizId,
-        orderIndex: q['order_index'] as int,
-        questionType: Value(q['question_type'] as int? ?? 0),
-        numberOfOptions: Value(q['number_of_options'] as int? ?? 4),
-        content: (q['content'] as String?) ?? '',
-        correctAnswerIds:
-        Value(q['correct_answer_ids'] as String? ?? '[]'),
-        score: Value(q['score'] as int? ?? 1),
+      // 该题目在云端的全部选项
+      final optsForThisQuestion =
+          optionsByQuestion[oldQid] ?? const <Map<String, dynamic>>[];
+
+      // 先导入所有选项（生成新的本地 optionId）
+      for (final o in optsForThisQuestion) {
+        final oMap = Map<String, dynamic>.from(o);
+        final text = oMap['text_value'] as String? ?? '';
+        final orderIndex = oMap['order_index'] as int? ?? 0;
+        final newOptId = const Uuid().v4();
+
+        localOptions.add(
+          QuizOptionsCompanion.insert(
+            id: newOptId,
+            questionId: newQid,
+            textValue: text,
+            orderIndex: orderIndex,
+          ),
+        );
+      }
+
+      // 直接用云端存的 correct_answer_texts 写入本地字段 correctAnswerTexts
+      final String rawTexts =
+          qMap['correct_answer_texts'] as String? ?? '[]';
+
+      localQuestions.add(
+        QuestionsCompanion.insert(
+          id: newQid,
+          quizId: newQuizId,
+          orderIndex: qMap['order_index'] as int? ?? 0,
+          questionType: Value(qMap['question_type'] as int? ?? 0),
+          numberOfOptions: Value(qMap['number_of_options'] as int? ?? 4),
+          content: qMap['content'] as String? ?? '',
+          correctAnswerTexts: Value(rawTexts),
+          score: Value(qMap['score'] as int? ?? 1),
+        ),
       );
-    }).toList();
+    }
 
-    // build local options
-    final localOptions =
-    cloudOptions.map<QuizOptionsCompanion>((o) {
-      final oldQid = o['question_id'] as String;
-      final newQid = qidMap[oldQid]!;
-      final newOptId = const Uuid().v4();
-
-      return QuizOptionsCompanion.insert(
-        id: newOptId,
-        questionId: newQid,
-        textValue: (o['text_value'] as String?) ?? '',
-        orderIndex: o['order_index'] as int? ?? 0,
-      );
-    }).toList();
-
-    // 5. 通过 QuizDao 一次性写入本地
     final bundle = QuizBundle(
-      quiz: newQuiz,
+      quiz: quizCompanion,
       questions: localQuestions,
       options: localOptions,
     );

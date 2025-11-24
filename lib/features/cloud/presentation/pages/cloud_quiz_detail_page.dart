@@ -1,5 +1,5 @@
-// cloudquizdetail
 import 'dart:convert';
+import 'package:flutter/services.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -104,45 +104,47 @@ class _CloudQuizDetailPageState extends State<CloudQuizDetailPage> {
   }
 
   Future<void> _showShareCodeDialog() async {
-    final code = widget.summary.shareCode.isEmpty
-        ? '(No share code)'
-        : widget.summary.shareCode;
+    final code = widget.summary.shareCode;
 
-    await showDialog(
+    showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Share Code'),
-          content: GestureDetector(
-            onLongPress: () async {
-              if (widget.summary.shareCode.isNotEmpty) {
-                await Clipboard.setData(
-                  ClipboardData(text: widget.summary.shareCode),
-                );
-                if (mounted) {
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Text(
+            'Share Code',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          content: SelectableText(
+            code.isEmpty ? '(No share code)' : code,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 18),
+          ),
+
+          // ⬇⬇⬇ 自定义 Copy 按钮
+          actions: [
+            TextButton(
+              onPressed: () async {
+                if (code.isNotEmpty) {
+                  await Clipboard.setData(ClipboardData(text: code));
+                  Navigator.of(context).pop();
+
+                  // 提示复制成功
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Share code copied'),
+                      content: Text('Copied to clipboard!'),
+                      duration: Duration(seconds: 1),
                     ),
                   );
                 }
-              }
-            },
-            child: Center(
-              child: Text(
-                code,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              },
+              child: const Text(
+                'Copy',
+                style: TextStyle(fontSize: 16),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            )
           ],
         );
       },
@@ -203,7 +205,7 @@ class _CloudQuizDetailPageState extends State<CloudQuizDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFB8A8FF),
+        backgroundColor: const Color(0xFFE7F0FF),
         foregroundColor: Colors.white,
         title: Text(
           quizTitle,

@@ -109,7 +109,9 @@ class _CloudQuizListPageState extends State<CloudQuizListPage> {
                         context,
                         '/cloudQuizDetail',
                         arguments: q,
-                      );
+                      ).then((_) {
+                        _loadCloudQuizzes();
+                      });
                     },
                     child: Container(
                       margin: const EdgeInsets.symmetric(

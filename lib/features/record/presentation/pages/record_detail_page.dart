@@ -8,6 +8,7 @@ class RecordDetailPage extends StatefulWidget {
   final String runId;
   final PracticeDao practiceDao;
   final QuizDao quizDao;
+
   const RecordDetailPage({
     super.key,
     required this.runId,
@@ -38,6 +39,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
       if (mounted) Navigator.pop(context);
       return;
     }
+
     final quiz = await widget.quizDao.getQuizById(run.quizId);
     final qs = await widget.quizDao.getQuestionsByQuiz(run.quizId);
     final ans = await widget.practiceDao.getAnswersByRun(widget.runId);
@@ -70,6 +72,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
   }
 
   // ---------- 评分/结果计算 ----------
+
   int _totalPossible() {
     final enableScores = _quiz?.enableScores ?? false;
     if (!enableScores) return _questions.length;
@@ -80,12 +83,14 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
   int _obtained() {
     final enableScores = _quiz?.enableScores ?? false;
     if (!enableScores) {
-      // 正确题数量
+      // 非分数模式：统计 isCorrect == true 的题数
       return _answers.values.where((a) => a.isCorrect == true).length;
     }
-    // 分数模式：若 run.score 有值用它；否则根据答案和题目分数计算一次兜底
+
+    // 分数模式：优先使用 run.score；没有的话根据每题 isCorrect 兜底算一遍
     final stored = _run?.score;
     if (stored != null) return stored;
+
     int sum = 0;
     for (final q in _questions) {
       final ans = _answers[q.id];
@@ -103,7 +108,6 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
 
   String _percentText() {
     final p = _percent();
-    // 一位小数（去掉无意义 .0）
     final s = p.toStringAsFixed(1);
     return s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
   }
@@ -114,14 +118,13 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     final pass = p >= passRate;
     return (
     text: pass ? 'Pass' : 'Fail',
-    color: pass ? Colors.green : Colors.red
+    color: pass ? Colors.green : Colors.red,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final title = _quiz?.title ?? 'Quiz Name';
-
     final result = _resultDisplay();
 
     return Scaffold(
@@ -137,7 +140,8 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
                 builder: (_) => AlertDialog(
                   title: const Text('Delete this record?'),
                   content: const Text(
-                      'This will remove this practice run and its answers.'),
+                    'This will remove this practice run and its answers.',
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
@@ -173,14 +177,20 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
             ),
           ),
           const SizedBox(height: 8),
-          Text('Time Spent: ${_formatDuration()}',
-              style: const TextStyle(fontSize: 16)),
+          Text(
+            'Time Spent: ${_formatDuration()}',
+            style: const TextStyle(fontSize: 16),
+          ),
           const SizedBox(height: 4),
-          Text('Score: ${_percentText()}%',
-              style: const TextStyle(fontSize: 16)),
+          Text(
+            'Score: ${_percentText()}%',
+            style: const TextStyle(fontSize: 16),
+          ),
           const SizedBox(height: 4),
-          Text('Result: ${result.text}',
-              style: TextStyle(fontSize: 16, color: result.color)),
+          Text(
+            'Result: ${result.text}',
+            style: TextStyle(fontSize: 16, color: result.color),
+          ),
           const SizedBox(height: 16),
 
           // ===== 逐题展示 =====
@@ -202,6 +212,7 @@ class _QuestionBlock extends StatelessWidget {
   final Question q;
   final List<QuizOption> options;
   final PracticeAnswer? answer;
+
   const _QuestionBlock({
     required this.index,
     required this.q,
@@ -209,115 +220,108 @@ class _QuestionBlock extends StatelessWidget {
     required this.answer,
   });
 
+  /// /// 将 JSON 数组字符串转成 Set<String>，例如 '["1","2","4"]'
+  static Set<String> _parseSet(String jsonStr) {
+    if (jsonStr.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(jsonStr);
+      if (decoded is List) {
+        return decoded.map((e) => e.toString()).toSet();
+      }
+    } catch (_) {}
+    return {};
+  }
+
   @override
   Widget build(BuildContext context) {
-    final correctIds = _parseIds(q.correctAnswerIds);
-    final chosen = _parseIds(answer?.chosenOptions ?? '[]');
+    // 题目正确答案文本（Question.correctAnswerTexts JSON 字符串）
+    final correctTexts = _parseSet(q.correctAnswerTexts);
 
-    final bool isCorrect =
-        chosen.isNotEmpty && chosen.length == correctIds.length && chosen.containsAll(correctIds);
+    // 作答时勾选的选项文本集合（PracticeAnswer.chosenTexts JSON 字符串）
+    final chosenTexts = _parseSet(answer?.chosenTexts ?? '[]');
 
-    final statusText = isCorrect ? '（Correct）' : '（Incorrect or Incomplete）';
-    final statusColor = isCorrect ? Colors.green : Colors.red;
+    // 判定是否作答正确：两个集合完全相同即可
+    final isCorrect = chosenTexts.isNotEmpty &&
+        chosenTexts.length == correctTexts.length &&
+        chosenTexts.containsAll(correctTexts);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 题干 + 状态
-          RichText(
-            text: TextSpan(
+    final resultText =
+    isCorrect ? 'Correct' : 'Incorrect or Incomplete';
+    final resultColor = isCorrect ? Colors.green : Colors.red;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 题号 + 判定结果
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Row(
+            children: [
+              Text(
+                '${index + 1}. ${q.orderIndex}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                resultText,
+                style: TextStyle(
+                  color: resultColor,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // 题干
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4.0),
+          child: Text(
+            q.content,
+            style: const TextStyle(fontSize: 16),
+          ),
+        ),
+
+        // 选项列表
+        ...options.map((o) {
+          final isOptionCorrect = correctTexts.contains(o.textValue);
+          final isOptionChosen = chosenTexts.contains(o.textValue);
+
+          // 右侧小圆点颜色：
+          //  绿色：该选项是正确答案
+          //  灰色：非正确答案
+          final dotColor = isOptionCorrect ? Colors.green : Colors.grey;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.0),
+            child: Row(
               children: [
-                TextSpan(
-                  text: '${index + 1}. ${q.content} ',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                // 选项文本（正确答案高亮为绿色）
+                Expanded(
+                  child: Text(
+                    o.textValue,
+                    style: TextStyle(
+                      color: isOptionCorrect ? Colors.green : Colors.black,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
-                TextSpan(
-                  text: statusText,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
-                  ),
+                // 右侧小圆点（是否选中）
+                Icon(
+                  Icons.circle,
+                  size: 10,
+                  color: isOptionChosen ? dotColor : Colors.grey[300],
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 8),
+          );
+        }).toList(),
 
-          // 选项
-          for (int i = 0; i < options.length; i++)
-            _optionLine(options[i], i, correctIds, chosen),
-          const SizedBox(height: 6),
-        ],
-      ),
+        const SizedBox(height: 16),
+      ],
     );
-  }
-
-  Widget _optionLine(
-      QuizOption opt,
-      int idx,
-      Set<String> correctIds,
-      Set<String> chosen,
-      ) {
-    final bool isChosen = chosen.contains(opt.id);
-    final bool isCorrect = correctIds.contains(opt.id);
-
-    Color color;
-    if (isChosen && isCorrect) {
-      color = Colors.green;
-    } else if (isChosen && !isCorrect) {
-      color = Colors.red;
-    } else if (!isChosen && isCorrect) {
-      color = Colors.green;
-    } else {
-      color = Colors.black87;
-    }
-
-    final label = String.fromCharCode('A'.codeUnitAt(0) + idx);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Text('$label. ', style: TextStyle(fontSize: 16, color: color)),
-          Expanded(
-            child: Text(
-              opt.textValue,
-              style: TextStyle(fontSize: 16, color: color),
-            ),
-          ),
-          // 小圆点（视觉提示）
-          Container(
-            width: 12,
-            height: 12,
-            margin: const EdgeInsets.only(left: 8),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: (isChosen && isCorrect)
-                  ? Colors.green
-                  : (isChosen && !isCorrect)
-                  ? Colors.red
-                  : (isCorrect ? Colors.green : Colors.grey.shade300),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Set<String> _parseIds(String jsonStr) {
-    if (jsonStr.isEmpty) return {};
-    try {
-      final List decoded = jsonDecode(jsonStr);
-      return decoded.cast<String>().toSet();
-    } catch (_) {
-      return {};
-    }
   }
 }
