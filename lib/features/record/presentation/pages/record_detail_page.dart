@@ -237,8 +237,14 @@ class _QuestionBlock extends StatelessWidget {
     // 题目正确答案文本（Question.correctAnswerTexts JSON 字符串）
     final correctTexts = _parseSet(q.correctAnswerTexts);
 
-    // 作答时勾选的选项文本集合（PracticeAnswer.chosenTexts JSON 字符串）
-    final chosenTexts = _parseSet(answer?.chosenTexts ?? '[]');
+// 作答时勾选的选项 ID（PracticeAnswer.chosenOptions JSON 字符串）
+    final chosenIds = _parseSet(answer?.chosenOptions ?? '[]');
+
+    // 将选中的 ID 映射为对应的选项文本
+    final chosenTexts = options
+        .where((o) => chosenIds.contains(o.id))
+        .map((o) => o.textValue)
+        .toSet();
 
     // 判定是否作答正确：两个集合完全相同即可
     final isCorrect = chosenTexts.isNotEmpty &&
