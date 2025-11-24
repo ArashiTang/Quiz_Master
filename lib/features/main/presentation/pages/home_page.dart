@@ -157,7 +157,7 @@ class _HomePageState extends State<HomePage> {
             Navigator.pushNamed(context, '/practiceSelect');
           }, color: const Color(0xFFE9F5EA)),
           tile(Icons.cloud_outlined, 'My Cloud', '', onTap: () {
-            // TODO: 云端功能
+            Navigator.pushNamed(context, '/cloudQuizList');
           }, color: const Color(0xFFE7F0FF)),
         ],
       ),
@@ -249,7 +249,7 @@ class _HomePageState extends State<HomePage> {
           title: 'Import Quiz',
           sub: "Efficiently import user's Quiz",
           onTap: () {
-            // TODO: 未来实现导入
+            Navigator.pushNamed(context, '/importQuiz', arguments: null);
           },
         ),
       ],

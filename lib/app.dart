@@ -31,6 +31,10 @@ import 'features/account/presentation/pages/reset_password_page.dart';
 import 'features/account/presentation/pages/user_profile_page.dart';
 import 'features/account/presentation/pages/change_name_page.dart';
 
+//Cloud
+import 'features/cloud/presentation/pages/cloud_quiz_list_page.dart';
+import 'features/cloud/presentation/pages/import_quiz_page.dart';
+
 class QuizApp extends StatelessWidget {
   const QuizApp({super.key});
 
@@ -91,6 +95,10 @@ class QuizApp extends StatelessWidget {
         '/register': (_) => const RegisterPage(),
         '/resetPassword': (_) => const ResetPasswordPage(),
         '/userProfile': (_) => const UserProfilePage(),
+
+        // ===== Cloud =====
+        '/cloudQuizList': (_) => const CloudQuizListPage(),
+        '/importQuiz': (_) => ImportQuizPage(quizDao: quizDao),
       },
     );
   }

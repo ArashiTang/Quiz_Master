@@ -24,6 +24,7 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
 
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _auth = SupabaseAuthService.instance;
   int _optionType = 0; // 0 = ABC, 1 = 123
   int _passRate = 60; // 0..100
   bool _enableScores = false;
@@ -131,6 +132,84 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
 
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Quiz saved.')));
+  }
+
+  Future<void> _uploadToCloud() async {
+    if (!_auth.isLoggedIn) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to upload quiz to cloud.')),
+      );
+      return;
+    }
+
+    // 1. 先本地保存，保证数据最新
+    await _save();
+    if (_loaded == null) return;
+    final quiz = _loaded!;
+    final quizId = quiz.id;
+
+    try {
+      // 2. 取本地所有题目
+      final questions = await widget.quizDao.getQuestionsByQuiz(quizId);
+
+      // 创建云端 quiz 的 JSON（注意：云端表不需要 id / owner_id，这部分由 API 填）
+      final cloudQuiz = {
+        'title': quiz.title,
+        'description': quiz.description,
+        'option_type': quiz.optionType,
+        'pass_rate': quiz.passRate,
+        'enable_scores': quiz.enableScores,
+      };
+
+      // ==============================
+      // 构建 cloud_questions / cloud_options
+      // ==============================
+      final List<Map<String, dynamic>> cloudQuestions = [];
+      final List<Map<String, dynamic>> cloudOptions = [];
+
+      for (final q in questions) {
+        // cloud_questions 按照我们云端表的字段来
+        cloudQuestions.add({
+          'order_index': q.orderIndex,
+          'question_type': q.questionType,
+          'number_of_options': q.numberOfOptions,
+          'content': q.content,
+          'correct_answer_ids': q.correctAnswerIds,
+          'score': q.score,
+        });
+
+        // 取本地选项
+        final opts = await widget.quizDao.getOptionsByQuestion(q.id);
+
+        for (final o in opts) {
+          cloudOptions.add({
+            // 这一项只是给 service 用来找 question_id，不会直接写进表
+            'question_order_index': q.orderIndex,
+            // 这个才是真正写进 cloud_options.order_index 的
+            'order_index': o.orderIndex,
+            'text_value': o.textValue,
+          });
+        }
+      }
+
+      // 3. 调用 service 上传
+      final shareCode = await _auth.uploadQuizToCloud(
+        quiz: cloudQuiz,
+        questions: cloudQuestions,
+        options: cloudOptions,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload success! Share code: $shareCode')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $e')),
+      );
+    }
   }
 
   Future<void> _deleteQuiz() async {
@@ -392,6 +471,13 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
               child: const Text('Preview'),
             ),
             const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _uploadToCloud,
+                child: const Text('Upload to Cloud'),
+              ),
+            ),
             TextButton(
               onPressed: _deleteQuiz,
               style: TextButton.styleFrom(
