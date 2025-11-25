@@ -32,7 +32,7 @@ class CloudQuizSummary {
       description: map['description'] as String?,
       ownerKey: (map['owner_id'] ?? '') as String,
       createdAt: DateTime.parse(map['created_at'] as String),
-      shareCode: (map['id'] ?? '') as String,
+      shareCode: (map['share_code'] ?? map['id'] ?? '') as String,
     );
   }
 }
@@ -312,7 +312,7 @@ class SupabaseAuthService {
         description: map['description'] as String?,
         ownerKey: map['owner_id'] as String? ?? '',
         createdAt: DateTime.parse(map['created_at'] as String),
-        shareCode: map['id'] as String,
+        shareCode: (map['share_code'] ?? map['id'] ?? '') as String,
       );
     }).toList();
   }

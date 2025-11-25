@@ -17,6 +17,7 @@ class _SelectCloudQuizPageState extends State<SelectCloudQuizPage> {
   List<CloudQuizSummary> _quizzes = [];
   bool _loading = true;
   String _keyword = '';
+  String? _error;
 
   @override
   void initState() {
@@ -30,24 +31,33 @@ class _SelectCloudQuizPageState extends State<SelectCloudQuizPage> {
       setState(() {
         _quizzes = [];
         _loading = false;
+        _error = 'Please log in first.';
       });
       return;
     }
 
-    final res = await _client
-        .from('cloud_quizzes')
-        .select('id,title,description,owner_id,created_at,share_code')
-        .eq('owner_id', user.id)
-        .order('created_at', ascending: false);
+    try {
+      final res = await _client
+          .from('cloud_quizzes')
+          .select('id,title,description,owner_id,created_at,share_code')
+          .eq('owner_id', user.id)
+          .order('created_at', ascending: false);
 
-    final items = (res as List<dynamic>)
-        .map((e) => CloudQuizSummary.fromMap(e as Map<String, dynamic>))
-        .toList();
+      final items = (res as List<dynamic>)
+          .map((e) => CloudQuizSummary.fromMap(e as Map<String, dynamic>))
+          .toList();
 
-    setState(() {
-      _quizzes = items;
-      _loading = false;
-    });
+      setState(() {
+        _quizzes = items;
+        _loading = false;
+        _error = null;
+      });
+    } catch (e) {
+      setState(() {
+        _loading = false;
+        _error = 'Failed to load cloud quizzes: $e';
+      });
+    }
   }
 
   @override
@@ -95,6 +105,17 @@ class _SelectCloudQuizPageState extends State<SelectCloudQuizPage> {
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    )
                 : ListView.builder(
               itemCount: filtered.length,
               itemBuilder: (_, i) {
