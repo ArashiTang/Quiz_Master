@@ -142,11 +142,13 @@ class _PieChart extends StatelessWidget {
 
     return Column(
       children: [
-        SizedBox(
-          height: 120,
-          child: CustomPaint(
-            painter: _PiePainter(passAngle: passAngle, failAngle: failAngle),
-            child: const SizedBox.expand(),
+        Center(
+          child: SizedBox.square(
+            dimension: 140,
+            child: CustomPaint(
+              painter: _PiePainter(passAngle: passAngle, failAngle: failAngle),
+              child: const SizedBox.expand(),
+            ),
           ),
         ),
         const SizedBox(height: 8),

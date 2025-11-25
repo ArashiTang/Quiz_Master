@@ -224,7 +224,7 @@ class _MinePageState extends State<MinePage> {
           _buildItem(
             title: 'Documents',
             onTap: () {
-              // TODO: PDF 浏览
+              Navigator.pushNamed(context, '/documents');
             },
           ),
           _buildItem(

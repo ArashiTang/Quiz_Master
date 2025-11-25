@@ -39,6 +39,8 @@ import 'features/cloud/presentation/pages/import_quiz_page.dart';
 import 'features/onlinetest/presentation/pages/create_test_page.dart';
 import 'features/onlinetest/presentation/pages/test_list_page.dart';
 import 'features/onlinetest/presentation/pages/test_room_page.dart';
+import 'features/documents/presentation/pages/document_list_page.dart';
+import 'features/documents/presentation/pages/pdf_viewer_page.dart';
 
 class QuizApp extends StatelessWidget {
   const QuizApp({super.key});
@@ -80,6 +82,7 @@ class QuizApp extends StatelessWidget {
         '/register': (_) => const RegisterPage(),
         '/resetPassword': (_) => const ResetPasswordPage(),
         '/userProfile': (_) => const UserProfilePage(),
+        '/documents': (_) => const DocumentListPage(),
 
         // Online test
         '/createTest': (_) => const CreateTestPage(),
@@ -127,6 +130,13 @@ class QuizApp extends StatelessWidget {
               practiceDao: practiceDao,
               quizDao: quizDao,
             ),
+          );
+        }
+
+        if (settings.name == '/pdfViewer') {
+          final args = settings.arguments as PdfViewerArgs;
+          return MaterialPageRoute(
+            builder: (_) => PdfViewerPage(args: args),
           );
         }
 
