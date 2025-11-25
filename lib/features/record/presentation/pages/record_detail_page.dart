@@ -264,7 +264,7 @@ class _QuestionBlock extends StatelessWidget {
           child: Row(
             children: [
               Text(
-                '${index + 1}. ${q.orderIndex}',
+                '${q.orderIndex}.',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,

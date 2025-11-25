@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../onlinetest/data/online_test_api.dart';
 import 'select_cloud_quiz_page.dart';
+import '../../../../core/remote/supabase_auth_service.dart' show CloudQuizSummary;
 
 class CreateTestPage extends StatefulWidget {
   const CreateTestPage({super.key});
