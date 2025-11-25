@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quiz_master/core/widgets/adaptive_layout.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,20 +21,26 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _buildHero()),
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-            SliverToBoxAdapter(child: _buildQuickTiles(context)),
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-            SliverToBoxAdapter(child: _buildLocalQuizRow(context)),
-            SliverToBoxAdapter(child: _buildCreateImportRow(context)),
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-            SliverToBoxAdapter(child: _buildCreateTestSection(context)),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          ],
-        ),
+      body: AdaptiveLayout(
+        builder: (context, layout) {
+          final sectionGap = layout.gutter * 1.25;
+
+          return SafeArea(
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: _buildHero(layout)),
+                SliverToBoxAdapter(child: SizedBox(height: sectionGap)),
+                SliverToBoxAdapter(child: _buildQuickTiles(context, layout)),
+                SliverToBoxAdapter(child: SizedBox(height: sectionGap)),
+                SliverToBoxAdapter(child: _buildLocalQuizRow(context, layout)),
+                SliverToBoxAdapter(child: _buildCreateImportRow(context, layout)),
+                SliverToBoxAdapter(child: SizedBox(height: sectionGap)),
+                SliverToBoxAdapter(child: _buildCreateTestSection(context, layout)),
+                SliverToBoxAdapter(child: SizedBox(height: sectionGap * 1.5)),
+              ],
+            ),
+          );
+        },
       ),
 
       // Bottom navigation
@@ -63,10 +70,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Top banner
-  Widget _buildHero() {
+  Widget _buildHero(AdaptiveLayoutData layout) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(vertical: layout.gutter / 2),
+      padding: EdgeInsets.all(layout.gutter * 1.1),
       decoration: BoxDecoration(
         color: const Color(0xFF8FB2E0),
         borderRadius: _cardRadius,
@@ -114,7 +121,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Three functional bricks
-  Widget _buildQuickTiles(BuildContext context) {
+  Widget _buildQuickTiles(BuildContext context, AdaptiveLayoutData layout) {
     Widget tile(IconData icon, String title, String subtitle,
         {VoidCallback? onTap, Color? color}) {
       return Expanded(
@@ -123,7 +130,7 @@ class _HomePageState extends State<HomePage> {
           borderRadius: BorderRadius.circular(16),
           child: Container(
             height: 96,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
+            margin: EdgeInsets.symmetric(horizontal: layout.gutter / 2),
             decoration: BoxDecoration(
               color: (color ?? Colors.grey.shade200).withOpacity(.6),
               borderRadius: BorderRadius.circular(16),
@@ -145,29 +152,27 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          tile(Icons.article_outlined, 'My Record', '', onTap: () {
-            Navigator.pushNamed(context, '/records');
-          }, color: const Color(0xFFFFE5E5)),
-          tile(Icons.edit_outlined, 'Go Practice', '', onTap: () {
-            Navigator.pushNamed(context, '/practiceSelect');
-          }, color: const Color(0xFFE9F5EA)),
-          tile(Icons.cloud_outlined, 'My Cloud', '', onTap: () {
-            Navigator.pushNamed(context, '/cloudQuizList');
-          }, color: const Color(0xFFE7F0FF)),
-        ],
-      ),
+    return Row(
+      children: [
+        tile(Icons.article_outlined, 'My Record', '', onTap: () {
+          Navigator.pushNamed(context, '/records');
+        }, color: const Color(0xFFFFE5E5)),
+        tile(Icons.edit_outlined, 'Go Practice', '', onTap: () {
+          Navigator.pushNamed(context, '/practiceSelect');
+        }, color: const Color(0xFFE9F5EA)),
+        tile(Icons.cloud_outlined, 'My Cloud', '', onTap: () {
+          Navigator.pushNamed(context, '/cloudQuizList');
+        }, color: const Color(0xFFE7F0FF)),
+      ],
     );
   }
 
   // Local Quiz
-  Widget _buildLocalQuizRow(BuildContext context) {
+  Widget _buildLocalQuizRow(
+      BuildContext context, AdaptiveLayoutData layout) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: layout.gutter * 0.75),
       child: ListTile(
         contentPadding: EdgeInsets.zero,
         title: const Text('Local Quiz:',
@@ -190,7 +195,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Create / Import Quiz
-  Widget _buildCreateImportRow(BuildContext context) {
+  Widget _buildCreateImportRow(
+      BuildContext context, AdaptiveLayoutData layout) {
     Widget card({
       required String title,
       required String sub,
@@ -202,7 +208,10 @@ class _HomePageState extends State<HomePage> {
           borderRadius: _cardRadius,
           child: Container(
             height: 120,
-            margin: const EdgeInsets.only(left: 16, right: 8, top: 12),
+            margin: EdgeInsets.symmetric(
+              horizontal: layout.gutter / 2,
+              vertical: layout.gutter,
+            ),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -256,8 +265,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Create Test area
-  Widget _buildCreateTestSection(BuildContext context) {
+  Widget _buildCreateTestSection(
+      BuildContext context, AdaptiveLayoutData layout) {
     return Container(
+      margin: EdgeInsets.only(bottom: layout.gutter / 2),
       color: Colors.white,
       child: Column(
         children: [
