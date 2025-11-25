@@ -4,17 +4,17 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 管理本地头像路径：按邮箱区分
+/// Manage local profile picture paths: differentiated by email address
 class LocalProfileStorage {
   static const _avatarKeyPrefix = 'avatarPath_';
 
-  /// 根据邮箱读取头像路径（如果有）
+  /// Retrieve profile picture path (if applicable) based on email address.
   static Future<String?> getAvatarPath(String email) async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('$_avatarKeyPrefix$email');
   }
 
-  /// 保存头像路径（如果 path 为 null 则删除）
+  /// Save the profile picture path (delete if path is null).
   static Future<void> setAvatarPath(String email, String? path) async {
     final prefs = await SharedPreferences.getInstance();
     if (path == null) {
@@ -24,7 +24,7 @@ class LocalProfileStorage {
     }
   }
 
-  /// 把用户选择的图片复制到应用内部目录，返回新的路径
+  /// Copy the image selected by the user to the application's internal directory and return the new path.
   static Future<String> saveAvatarFile(String email, File source) async {
     final dir = await getApplicationDocumentsDirectory();
     final avatarsDir = Directory(p.join(dir.path, 'avatars'));
@@ -32,7 +32,7 @@ class LocalProfileStorage {
       await avatarsDir.create(recursive: true);
     }
 
-    // 用邮箱构造一个稳定的文件名（简单做法：替换非法字符）
+    // Construct a stable filename using an email address (simple approach: replace illegal characters).
     final safeEmail = email.replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_');
     final ext = p.extension(source.path);
     final targetPath = p.join(avatarsDir.path, '$safeEmail$ext');

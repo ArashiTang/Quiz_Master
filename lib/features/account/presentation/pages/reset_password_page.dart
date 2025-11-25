@@ -13,20 +13,20 @@ enum _ResetStep { email, code, newPassword }
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final _auth = SupabaseAuthService.instance;
 
-  // 三个步骤共用的一些状态
+  // Some states shared by the three steps
   _ResetStep _step = _ResetStep.email;
   bool _loading = false;
   String? _errorText;
 
-  // Step1 – 输入邮箱
+  // Step1 – Enter email address
   final _emailCtrl = TextEditingController();
   String? _emailError;
 
-  // Step2 – 输入验证码
+  // Step2 – enter confirmation code
   final _codeCtrl = TextEditingController();
   String? _codeError;
 
-  // Step3 – 设置新密码
+  // Step3 – Set a new password
   final _pwdCtrl = TextEditingController();
   final _pwdConfirmCtrl = TextEditingController();
   String? _pwdError;
@@ -45,7 +45,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 统一的顶部紫色
+    // Uniform purple top
     final Color headerColor = const Color(0xFFB39DDB);
 
     return Scaffold(
@@ -63,7 +63,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         ),
       ),
       body: GestureDetector(
-        // 点空白处收起键盘
+        // Click on a blank space to hide the keyboard.
         onTap: () => FocusScope.of(context).unfocus(),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -90,7 +90,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     );
   }
 
-  // ========== Step 1: 输入邮箱 ==========
+  // ========== Step 1: Enter email address ==========
   Widget _buildStep1(Color headerColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -185,7 +185,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     }
   }
 
-  // ========== Step 2: 输入验证码 ==========
+  // ========== Step 2: enter confirmation code ==========
   Widget _buildStep2(Color headerColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -276,7 +276,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     }
   }
 
-  // ========== Step 3: 设置新密码 ==========
+  // ========== Step 3: Set a new password ==========
   Widget _buildStep3(Color headerColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -397,7 +397,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         const SnackBar(content: Text('Password has been reset successfully.')),
       );
 
-      Navigator.pop(context); // 返回上一页（通常是 Login）
+      Navigator.pop(context); // Return to the previous page (usually Login).
     } catch (e) {
       setState(() {
         _errorText = 'Reset failed: $e';

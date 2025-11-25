@@ -5,13 +5,14 @@ import 'package:quiz_master/core/database/daos/quiz_dao.dart';
 import 'package:quiz_master/core/database/daos/practice_dao.dart';
 import 'core/remote/supabase_auth_service.dart';
 
-// ===== 页面 =====
+// ===== Page =====
 
-// 主功能
+// Main function
 import 'package:quiz_master/features/main/presentation/pages/home_page.dart';
 import 'package:quiz_master/features/main/presentation/pages/mine_page.dart';
+import 'package:quiz_master/features/main/presentation/pages/subscription_page.dart';
 
-// Quiz 本地编辑 & 预览
+// Quiz Local Editing & Preview
 import 'package:quiz_master/features/edit_and_list_quiz/presentation/pages/quiz_list_page.dart';
 import 'package:quiz_master/features/edit_and_list_quiz/presentation/pages/quiz_editor_page.dart';
 import 'package:quiz_master/features/edit_and_list_quiz/presentation/pages/question_editor_page.dart';
@@ -25,7 +26,7 @@ import 'package:quiz_master/features/practice/presentation/pages/practice_run_pa
 import 'package:quiz_master/features/record/presentation/pages/record_list_page.dart';
 import 'package:quiz_master/features/record/presentation/pages/record_detail_page.dart';
 
-// 账号相关
+// Account related
 import 'features/account/presentation/pages/login_page.dart';
 import 'features/account/presentation/pages/register_page.dart';
 import 'features/account/presentation/pages/reset_password_page.dart';
@@ -47,7 +48,7 @@ class QuizApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 创建数据库实例与 DAO（整 app 复用同一实例）
+    // Create a database instance and a DAO (the entire app reuses the same instance).
     final db = AppDb();
     final quizDao = QuizDao(db);
     final practiceDao = PracticeDao(db);
@@ -62,12 +63,12 @@ class QuizApp extends StatelessWidget {
 
       initialRoute: '/',
 
-      /// 固定路由（无参数的页面）
+      /// Fixed route (page without parameters)
       routes: {
         '/': (_) => const HomePage(),
         '/mine': (_) => const MinePage(),
 
-        // 本地 Quiz
+        // local Quiz
         '/quizList': (_) => QuizListPage(quizDao: quizDao),
         '/quizEditor': (_) => QuizEditorPage(quizDao: quizDao),
         '/questionEditor': (_) => QuestionEditorPage(quizDao: quizDao),
@@ -83,19 +84,20 @@ class QuizApp extends StatelessWidget {
         '/resetPassword': (_) => const ResetPasswordPage(),
         '/userProfile': (_) => const UserProfilePage(),
         '/documents': (_) => const DocumentListPage(),
+        '/subscription': (_) => const SubscriptionPage(),
 
         // Online test
         '/createTest': (_) => const CreateTestPage(),
         '/testList': (_) => const TestListPage(),
         '/testRoom': (_) => TestRoomPage(quizDao: quizDao),
 
-        // Cloud 固定页面（无参数）
+        // Cloud fixed page (no parameters)
         '/cloudQuizList': (_) => const CloudQuizListPage(),
 
         '/importQuiz': (_) => ImportQuizPage(quizDao: quizDao),
       },
 
-      /// 动态路由（可接收参数的页面）
+      /// Dynamic routing (pages that can receive parameters)
       onGenerateRoute: (settings) {
         // ========== Cloud Quiz Detail ==========
         if (settings.name == '/cloudQuizDetail') {

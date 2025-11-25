@@ -55,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
         password: _pwdCtrl.text,
       );
       if (!mounted) return;
-      Navigator.pop(context); // 返回 MinePage
+      Navigator.pop(context); // return MinePage
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -146,7 +146,7 @@ class _TestRoomPageState extends State<TestRoomPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('进入测试：${test.title} (time limit ${test.timeLimit} mins)'),
+          content: Text('Enter test：${test.title} (time limit ${test.timeLimit} mins)'),
         ),
       );
 

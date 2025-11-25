@@ -8,7 +8,7 @@ QueryExecutor createExecutor() {
   return LazyDatabase(() async {
     final dir = await getApplicationDocumentsDirectory();
     final file = File(p.join(dir.path, 'quizmaster.db'));
-    // 使用后台线程创建数据库，防止主线程卡顿
+    // Use a background thread to create the database to prevent the main thread from freezing.
     return NativeDatabase.createInBackground(file);
   });
 }

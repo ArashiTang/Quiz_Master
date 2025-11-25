@@ -9,7 +9,7 @@ class Questions extends Table {
 
   IntColumn get questionType => integer().withDefault(const Constant(0))(); // 0=Single,1=Multiple
   IntColumn get numberOfOptions => integer().withDefault(const Constant(4))();
-  TextColumn get content => text()(); // 题干内容
+  TextColumn get content => text()(); // Question content
 
   TextColumn get correctAnswerTexts =>
       text().withDefault(const Constant('[]'))();

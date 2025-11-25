@@ -25,19 +25,19 @@ class _RegisterPageState extends State<RegisterPage> {
   _RegisterStep _step = _RegisterStep.form;
   bool _loading = false;
 
-  // 密码显隐
+  // Password Show/Hide
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
-  // 表单错误
+  // Form error
   String? _usernameError;
   String? _emailError;
   String? _passwordError;
   String? _confirmError;
   String? _codeError;
 
-  String? _globalError;   // 底部红字
-  String? _infoText;      // 底部提示（例如“已发送验证码到邮箱”）
+  String? _globalError;   // Red text at the bottom
+  String? _infoText;      // Bottom prompt (e.g., "Verification code has been sent to your email")
 
   @override
   void dispose() {
@@ -49,7 +49,7 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  Color get _headerColor => const Color(0xFFB39DDB); // 和其它账号页面统一的紫色
+  Color get _headerColor => const Color(0xFFB39DDB); // The same purple color as other account pages
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +74,7 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  // ================= Step 1: 填写账号信息 =================
+  // ================= Step 1: Fill in account information =================
 
   Widget _buildStepForm() {
     return Column(
@@ -292,7 +292,7 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      // 调用 Supabase 发送注册 OTP（确认注册）
+      // Call Supabase to send the registration OTP (registration confirmation).
       await _auth.sendSignupOtp(
         email: email,
         password: password,
@@ -318,7 +318,7 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  // ================= Step 2: 输入验证码完成注册 =================
+  // ================= Step 2: Enter the verification code to complete the registration. =================
 
   Widget _buildStepCode() {
     return Column(
@@ -432,7 +432,7 @@ class _RegisterPageState extends State<RegisterPage> {
         const SnackBar(content: Text('Register successful!')),
       );
 
-      Navigator.of(context).pop(); // 返回到上一页（通常是 Login / Mine）
+      Navigator.of(context).pop(); // Return to the previous page (usually Login / Mine).
     } catch (e) {
       setState(() {
         _codeError = 'Verification failed: $e';

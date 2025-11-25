@@ -23,7 +23,7 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE9F5EA), // Go Practice 主题底色
+      backgroundColor: const Color(0xFFE9F5EA),
       appBar: AppBar(
         title: const Text('Practice'),
         backgroundColor: Colors.white,
@@ -32,7 +32,7 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
       ),
       body: Column(
         children: [
-          // 搜索框
+          // search box
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: TextField(
@@ -54,7 +54,7 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
           ),
           const SizedBox(height: 8),
 
-          // 列表
+          // List
           Expanded(
             child: StreamBuilder<List<Quizze>>(
               stream: widget.quizDao.watchQuizzesByOwner(SupabaseAuthService.instance.currentOwnerKey),
@@ -86,12 +86,12 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
                         Navigator.pushNamed(
                           context,
                           '/practiceRun',
-                          arguments: q.id, // 只传 quizId 即可
+                          arguments: q.id, // Just send the quizId.
                         );
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.white, // 白卡片 + 绿色背景
+                          color: Colors.white, // White card + green background
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: const [
                             BoxShadow(
@@ -106,7 +106,7 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // 左侧文本
+                            // Left side text
                             Expanded(
                               child: Column(
                                 crossAxisAlignment:

@@ -15,7 +15,7 @@ class CloudQuizListPage extends StatefulWidget {
 class _CloudQuizListPageState extends State<CloudQuizListPage> {
   final _auth = SupabaseAuthService.instance;
 
-  /// 这里保存 CloudQuizSummary，而不是 Map
+  /// This stores CloudQuizSummary, not Map.
   List<CloudQuizSummary> _cloudQuizzes = [];
 
   String _search = '';

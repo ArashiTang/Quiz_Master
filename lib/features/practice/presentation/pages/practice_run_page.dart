@@ -46,15 +46,15 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
   Quizze? _quiz;
   final List<Question> _questions = [];
   final Map<String, List<QuizOption>> _options = {}; // qId -> options
-  final Map<String, GlobalKey> _qKeys = {}; // 用于目录定位
+  final Map<String, GlobalKey> _qKeys = {}; // Used for directory navigation
 
-  /// 题ID -> 选中 optionId 集合（仅内存，不落库）
+  /// Question ID -> Select the optionId set (memory only, not written to the database)
   final Map<String, Set<String>> _picked = {};
 
-  // 计时
+  // Timing
   Timer? _timer;
   int _seconds = 0;
-  int? _startedAtMs; // 进入页面的真实开始时间（用于写 DB）
+  int? _startedAtMs; // The actual start time of entering the page (used for writing to the database).
 
   bool _loading = true;
 
@@ -72,7 +72,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
   }
 
   Future<void> _loadAll() async {
-    // 读取 quiz + questions + options
+    // Read quiz + questions + options
     final quiz = await widget.quizDao.getQuizById(widget.quizId);
     if (quiz == null) {
       if (mounted) Navigator.pop(context);
@@ -84,7 +84,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
       optMap[q.id] = await widget.quizDao.getOptionsByQuestion(q.id);
     }
 
-    // 记录开始时刻并启动计时（仅内存）
+    // Record the start time and start the timer (memory only).
     _startedAtMs = DateTime.now().millisecondsSinceEpoch;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
@@ -101,16 +101,16 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
         ..addAll(optMap);
       _loading = false;
 
-      // 为每题准备一个 key（目录跳转用）
+      // Prepare a key for each question (for directory navigation).
       for (final q in _questions) {
         _qKeys[q.id] = GlobalKey();
       }
     });
   }
 
-  // ---------- 工具：解析正确答案“文本数组” ----------
-  /// 本地 Questions 表里现在存的是 correctAnswerTexts（JSON 字符串）
-  /// 这里解析成 Set<String>
+  // ---------- Tool: Parsing the correct answer "text array" ----------
+  /// The local Questions table currently stores correctAnswerTexts (JSON strings).
+  /// This is parsed as Set<String>
   Set<String> _parseCorrectTexts(String raw) {
     if (raw.isEmpty) return <String>{};
     try {
@@ -119,13 +119,13 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
         return decoded.map((e) => e.toString()).toSet();
       }
     } catch (_) {
-      // 如果未来出现脏数据，直接当没有正确答案处理
+
     }
     return <String>{};
   }
 
   String _labelFor(int index) {
-    // 0=ABC, 1=123（沿用 quiz 设置）
+    // 0=ABC, 1=123 (using quiz settings)
     final style = _quiz?.optionType ?? 0;
     return style == 0
         ? String.fromCharCode('A'.codeUnitAt(0) + index)
@@ -142,14 +142,14 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     _scaffoldKey.currentState?.openEndDrawer();
   }
 
-  // -------- 目录跳转：关抽屉→等动画→等一帧→测坐标→滚动 --------
+  // -------- Navigate through the table of contents: Close drawer → Wait for animation → Wait for one frame → Measure coordinates → Scroll --------
   Future<void> _jumpToQuestion(String qId) async {
     final itemKey = _qKeys[qId];
     if (itemKey == null) return;
 
-    _scaffoldKey.currentState?.closeEndDrawer(); // 1) 关闭抽屉
+    _scaffoldKey.currentState?.closeEndDrawer(); // 1) Close the drawer
     await Future.delayed(const Duration(milliseconds: 250)); // 2) 等抽屉动画
-    await WidgetsBinding.instance.endOfFrame; // 3) 等一帧
+    await WidgetsBinding.instance.endOfFrame; // 3) Wait for a frame
 
     final listCtx = _listKey.currentContext;
     final itemCtx = itemKey.currentContext;
@@ -161,8 +161,8 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     final listTop = listBox.localToGlobal(Offset.zero).dy;
     final itemTop = itemBox.localToGlobal(Offset.zero).dy;
 
-    final delta = itemTop - listTop; // 目标相对滚动位移
-    final desired = _scrollController.offset + delta - 12; // 顶部留 12px
+    final delta = itemTop - listTop; // target relative rolling displacement
+    final desired = _scrollController.offset + delta - 12; // Leave 12px at the top
 
     final min = 0.0;
     final max = _scrollController.position.maxScrollExtent;
@@ -175,7 +175,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     );
   }
 
-  // ---------- 作答（仅内存） ----------
+  // ---------- Answer (memory only) ----------
   void _togglePick(Question q, String optId) {
     final multiple = q.questionType == 1;
     setState(() {
@@ -188,33 +188,33 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
           ..add(optId);
       }
     });
-    // 不落库 —— 直到 Submit 时才写 DB
+    // No data is written to the database until the commit statement is made.
   }
 
-  /// 按“文本”判题：
-  /// - 从 Question.correctAnswerTexts 解析出目标文本集合
-  /// - 根据选择的 optionId 找到对应文本集合
-  /// - 两个集合完全一致则判为正确
+  /// Judgment based on "text":
+  /// - Parse the target text set from Question.correctAnswerTexts
+  /// - Find the corresponding text set based on the selected optionId.
+  /// - If two sets are completely identical, the result is considered correct.
   bool _judgeCorrect(Question q, Set<String> chosen) {
     if (chosen.isEmpty) return false;
 
-    // 1. 解析本题的“正确答案文本列表”
+    // 1. Analysis of the "Correct Answer Text List" for this question.
     final targetTexts = _parseCorrectTexts(q.correctAnswerTexts);
     if (targetTexts.isEmpty) return false;
 
-    // 2. 根据选中的 optionId 找到对应文本
+    // 2. Find the corresponding text based on the selected optionId.
     final opts = _options[q.id] ?? const <QuizOption>[];
     final chosenTexts = opts
         .where((o) => chosen.contains(o.id))
         .map((o) => o.textValue)
         .toSet();
 
-    // 3. 文本集合相同则判正确
+    // 3. If the text sets are the same, the condition is correct.
     return targetTexts.length == chosenTexts.length &&
         targetTexts.containsAll(chosenTexts);
   }
 
-  // ---------- 退出/提交 ----------
+  // ---------- Exit/Submit ----------
 
   Future<bool> _confirmExit() async {
     final ok = await showDialog<bool>(
@@ -256,14 +256,14 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     );
     if (ok != true) return;
 
-    // 1) 先创建 run（把进入页面时刻作为 startedAt）
+    // 1) First, create a run instance (using the page entry time as startedAt).
     final runId = await widget.practiceDao.startRun(
       widget.quizId,
       SupabaseAuthService.instance.currentOwnerKey,
       startedAtMs: _startedAtMs,
     );
 
-    // 2) 计算得分 + 写每题答案
+    // 2) Calculate your score + write your answer to each question.
     int score = 0;
     int totalScore = 0;
     final enableScores = _quiz?.enableScores ?? false;
@@ -284,10 +284,10 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
       );
     }
 
-    // 3) 写结束时间与总分
+    // 3) Write the end time and total score
     await widget.practiceDao.finishRun(runId, score);
 
-    // 4) 在线测验：将结果写回 Supabase
+    // 4) Online quiz: Write the results back to Supabase
     await _uploadTestResult(
       runId: runId,
       score: score,
@@ -295,7 +295,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     );
 
     if (!mounted) return;
-    Navigator.pop(context); // 返回选择页
+    Navigator.pop(context); // Return to selection page
   }
 
   Future<void> _uploadTestResult({
@@ -345,7 +345,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     final quiz = _quiz!;
     return WillPopScope(
       onWillPop: () async {
-        // 抽屉开着就先关抽屉，不弹退出框
+        // Close the drawer if it's open, otherwise the eject box will pop up.
         if (_scaffoldKey.currentState?.isEndDrawerOpen ?? false) {
           _scaffoldKey.currentState?.closeEndDrawer();
           return false;
@@ -358,7 +358,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () async {
-              // 抽屉开着就先关抽屉
+              // Close the drawer if it's open.
               if (_scaffoldKey.currentState?.isEndDrawerOpen ?? false) {
                 _scaffoldKey.currentState?.closeEndDrawer();
                 return;
@@ -389,7 +389,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
           ),
         ),
 
-        // 右侧目录
+        // Right-hand table of contents
         endDrawer: Drawer(
           child: SafeArea(
             child: ListView.separated(
@@ -413,7 +413,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
           ),
         ),
 
-        // 一次性构建所有题：SingleChildScrollView + Column
+        // Build all questions at once: SingleChildScrollView + Column
         body: SingleChildScrollView(
           key: _listKey,
           controller: _scrollController,
@@ -421,7 +421,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 顶部信息条（可选）
+              // Top information bar (optional)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
@@ -442,7 +442,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
               ),
               const SizedBox(height: 12),
 
-              // 题目卡（全部展示）
+              // Question cards (all shown)
               for (int i = 0; i < _questions.length; i++) ...[
                 _QuestionCard(
                   key: _qKeys[_questions[i].id],
@@ -457,7 +457,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
                 const SizedBox(height: 12),
               ],
 
-              // 底部提交
+              // Submit at the bottom
               const SizedBox(height: 24),
               Center(
                 child: SizedBox(

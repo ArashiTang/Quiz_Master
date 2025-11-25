@@ -10,7 +10,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _tabIndex = 0; // 0=Home, 1=Test Room, 2=Mine
 
-  // 轻量样式工具
+  // Lightweight Style Tools
   TextStyle get _title =>
       const TextStyle(fontSize: 20, fontWeight: FontWeight.w600);
   TextStyle get _subtle => const TextStyle(color: Colors.black54);
@@ -36,17 +36,17 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
 
-      // 底部导航
+      // Bottom navigation
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _tabIndex,
         onTap: (i) {
           setState(() => _tabIndex = i);
 
-          // 这里根据按钮跳转页面
+          // This page redirects based on the button.
           if (i == 1) {
             Navigator.pushNamed(context, '/testRoom');
           } else if (i == 2) {
-            // 进入 MinePage（你在 app.dart 里已经配过 '/mine'）
+            // Enter MinePage (you've already configured '/mine' in app.dart).
             Navigator.pushNamed(context, '/mine');
           }
         },
@@ -62,7 +62,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // 顶部横幅
+  // Top banner
   Widget _buildHero() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -73,7 +73,7 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Row(
         children: [
-          // Logo 预留
+          // Logo reserved
           Container(
             width: 64,
             height: 64,
@@ -113,7 +113,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // 三个功能砖块
+  // Three functional bricks
   Widget _buildQuickTiles(BuildContext context) {
     Widget tile(IconData icon, String title, String subtitle,
         {VoidCallback? onTap, Color? color}) {
@@ -163,7 +163,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Local Quiz 行
+  // Local Quiz
   Widget _buildLocalQuizRow(BuildContext context) {
     return Container(
       color: Colors.white,
@@ -189,7 +189,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Create / Import 两张卡
+  // Create / Import Quiz
   Widget _buildCreateImportRow(BuildContext context) {
     Widget card({
       required String title,
@@ -255,7 +255,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Create Test 区域
+  // Create Test area
   Widget _buildCreateTestSection(BuildContext context) {
     return Container(
       color: Colors.white,

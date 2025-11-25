@@ -7,13 +7,13 @@ import 'package:quiz_master/core/database/daos/quiz_dao.dart';
 import 'package:quiz_master/core/database/db/app_db.dart';
 import 'package:quiz_master/core/database/utils/ids.dart';
 
-/// 路由参数：从 QuizEditor 进入时传入
+/// Routing parameters: passed in when entering QuizEditor
 class QuestionEditorArgs {
   final String quizId;
-  final String? questionId; // null 表示新建
-  final int optionStyle; // 0=ABC, 1=123（跟随 edit_and_list_quiz 设置）
-  final bool enableScores; // 跟随 edit_and_list_quiz 设置
-  final int? initialOrder; // 新建时建议题序
+  final String? questionId; // null indicates a new file.
+  final int optionStyle; // 0=ABC, 1=123 (follows the settings of edit_and_list_quiz)
+  final bool enableScores; // Follow the settings of edit_and_list_quiz
+  final int? initialOrder; // Suggested question order when creating a new question
 
   const QuestionEditorArgs({
     required this.quizId,
@@ -33,13 +33,13 @@ class QuestionEditorPage extends StatefulWidget {
 }
 
 class _QuestionEditorPageState extends State<QuestionEditorPage> {
-  // 路由入参
+  // Routing input parameters
   late String _quizId;
   late int _optionStyle;
   late bool _enableScores;
 
-  // 题目状态
-  Question? _loaded; // 如果生成类名是 QuestionsData，请改成对应类型
+  // Problem Status
+  Question? _loaded; // If the generated class name is QuestionsData, please change it to the corresponding type.
   late String _questionId;
   bool _multiple = false; // false = Single, true = Multiple
   int _optionCount = 4; // 2..8
@@ -50,14 +50,14 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
   final _scoreCtrl = TextEditingController(text: '1');
   final List<TextEditingController> _optCtrls = [];
   final List<String> _optIds = [];
-  final Set<String> _correctIds = {}; // 仍然用 optionId 做“当前页面”的勾选标记
+  final Set<String> _correctIds = {}; // We will still use optionId as the checkmark for "current page".
 
   bool _dirty = false;
 
   @override
   void initState() {
     super.initState();
-    // 先准备 4 个默认 option 控件
+    // First, prepare 4 default option controls.
     for (int i = 0; i < _optionCount; i++) {
       _optCtrls.add(TextEditingController());
       _optIds.add(newId('opt'));
@@ -81,7 +81,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
 
   Future<void> _initLoad(QuestionEditorArgs a) async {
     if (a.questionId == null) {
-      // 新建
+      // New
       _questionId = newId('q');
       _orderIndex =
           a.initialOrder ?? (await widget.quizDao.countQuestionsForQuiz(_quizId)) + 1;
@@ -90,7 +90,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
       return;
     }
 
-    // 编辑：加载题与选项
+    // Edit: Loading questions and options
     _questionId = a.questionId!;
     final q = await widget.quizDao.getQuestionById(_questionId);
     if (q != null) {
@@ -102,7 +102,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
       _score = q.score ?? 1;
       _scoreCtrl.text = '$_score';
 
-      // 选项
+      // option
       _optCtrls.clear();
       _optIds.clear();
       final opts = await widget.quizDao.getOptionsByQuestion(q.id);
@@ -111,7 +111,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
         _optIds.add(o.id);
       }
 
-      // 正确答案：现在是“文本数组” correctAnswerTexts
+      // Correct answer: It is now "text array".
       _correctIds.clear();
       if (q.correctAnswerTexts.isNotEmpty) {
         try {
@@ -119,7 +119,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
           final Set<String> correctTextSet =
           decoded.cast<String>().toSet(); // 正确答案文本集合
 
-          // 根据“选项文本”来反推哪些选项是正确的，并记录其 optionId
+          // Based on the "option text", deduce which options are correct and record their optionId.
           for (int i = 0; i < opts.length; i++) {
             final opt = opts[i];
             if (correctTextSet.contains(opt.textValue)) {
@@ -127,7 +127,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
             }
           }
         } catch (_) {
-          // 万一历史数据格式有问题，直接忽略，不崩
+          // If there are problems with the historical data format, just ignore them; the system won't crash.
         }
       }
 
@@ -194,7 +194,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
   }
 
   Future<void> _save() async {
-    // 1. 根据当前“选中的 optionId 列表”，提取对应的“选项文本”
+    // 1. Extract the corresponding option text based on the currently selected optionId list.
     final List<String> correctTexts = [];
     for (int i = 0; i < _optionCount; i++) {
       final id = _optIds[i];
@@ -212,7 +212,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
       questionType: Value(_multiple ? 1 : 0),
       numberOfOptions: Value(_optionCount),
       content: Value(_stemCtrl.text),
-      // ✅ 现在存的是“正确答案文本数组”的 JSON
+      // What's currently stored is a JSON file containing an array of "correct answer texts".
       correctAnswerTexts: Value(jsonEncode(correctTexts)),
       score: Value(_enableScores ? _score : 1),
       orderIndex: Value(_orderIndex),
@@ -220,7 +220,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
 
     await widget.quizDao.upsertQuestion(qComp);
 
-    // 选项按顺序保存
+    // Save options in order
     for (int i = 0; i < _optionCount; i++) {
       final oc = QuizOptionsCompanion(
         id: Value(_optIds[i]),
@@ -263,7 +263,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
     }
   }
 
-  /// 仅提示“未保存”，提供一个 Ignore 按钮（不保存并返回）
+  /// The message simply says "Unsaved," and provides an "Ignore" button (to skip saving and go back).
   Future<bool> _confirmDiscard() async {
     if (!_dirty) return true;
     final ok = await showDialog<bool>(
@@ -274,7 +274,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
         content: const Text("You haven't saved yet."),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true), // 直接返回 true
+            onPressed: () => Navigator.of(context).pop(true), // Returns true directly
             child: const Text('Ignore'),
           ),
         ],
@@ -288,7 +288,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
     final title = (_loaded != null) ? 'Question $_orderIndex' : 'New Question';
 
     return PopScope(
-      canPop: false, // 交由 onPopInvoked 决定
+      canPop: false, // The decision will be made by onPopInvoked.
       onPopInvoked: (didPop) async {
         if (didPop) return;
         final ok = await _confirmDiscard();
@@ -316,7 +316,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // 类型
+            // type
             Row(
               children: [
                 const Text('Number of Answers:  '),
@@ -351,7 +351,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
             ),
             const SizedBox(height: 12),
 
-            // 选项数量
+            // Number of options
             Row(
               children: [
                 const Text('Number of Options:  '),
@@ -364,7 +364,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
             ),
             const SizedBox(height: 12),
 
-            // 题干
+            // Question stem
             const Text('Question Stem'),
             const SizedBox(height: 6),
             TextField(
@@ -378,7 +378,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
             ),
             const SizedBox(height: 16),
 
-            // 选项
+            // Options
             const Text('Options'),
             const SizedBox(height: 6),
             for (int i = 0; i < _optionCount; i++)
@@ -399,7 +399,7 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
               ),
 
             const SizedBox(height: 12),
-            // 正确答案
+            // Correct answer
             const Text('Correct Answer'),
             const SizedBox(height: 6),
             Wrap(

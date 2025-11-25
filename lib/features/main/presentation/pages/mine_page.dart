@@ -20,7 +20,7 @@ class _MinePageState extends State<MinePage> {
   Map<String, dynamic>? _profile;
   bool _loading = true;
 
-  /// 本地头像路径
+  /// Local avatar path
   String? _avatarPath;
 
   @override
@@ -47,7 +47,7 @@ class _MinePageState extends State<MinePage> {
     }
   }
 
-  /// 统一通过 LocalProfileStorage 读取头像路径
+  /// Unified avatar path reading via LocalProfileStorage
   Future<void> _loadAvatarForEmail(String? email) async {
     if (email == null || email.isEmpty) {
       if (!mounted) return;
@@ -65,7 +65,7 @@ class _MinePageState extends State<MinePage> {
     });
   }
 
-  /// 退出/切换账号
+  /// Logout/Switch Account
   Future<void> _onLogoutOrSwitch() async {
     final action = await showDialog<String>(
       context: context,
@@ -108,15 +108,15 @@ class _MinePageState extends State<MinePage> {
     if (!mounted) return;
 
     if (action == 'logout') {
-      // 仅退出，停留在 Mine
+      // Exit only, stay in Mine
       await _loadUser();
     } else if (action == 'switch') {
-      // 退出并打开登录页
+      // Log out and open the login page
       Navigator.pushNamed(context, '/login').then((_) => _loadUser());
     }
   }
 
-  /// 头像组件：优先显示本地头像，否则显示空框
+  /// Avatar component: Prioritizes displaying local avatars; otherwise, displays an empty frame.
   Widget _buildAvatarBox() {
     final hasAvatar = _avatarPath != null &&
         _avatarPath!.isNotEmpty &&
@@ -154,22 +154,22 @@ class _MinePageState extends State<MinePage> {
       backgroundColor: const Color(0xFFF6F6F6),
       body: Column(
         children: [
-          // 顶部紫色条
+          // Purple bar at the top
           Container(
             height: 80,
             color: const Color(0xFFB5A7FF),
           ),
 
-          // ==== 可点击的 Profile 行 ====
+          // ==== Clickable Profile row ====
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
               if (!_auth.isLoggedIn) {
-                // 没登录：先去登录页
+                // Not logged in: Go to the login page first.
                 Navigator.pushNamed(context, '/login')
                     .then((_) => _loadUser());
               } else {
-                // 已登录：打开用户资料页
+                // Logged in: Open user profile page
                 Navigator.pushNamed(context, '/userProfile')
                     .then((_) => _loadUser());
               }
@@ -220,7 +220,7 @@ class _MinePageState extends State<MinePage> {
           ),
           const Divider(height: 1),
 
-          // 下面的菜单项
+          // The menu items below
           _buildItem(
             title: 'Documents',
             onTap: () {
@@ -230,7 +230,7 @@ class _MinePageState extends State<MinePage> {
           _buildItem(
             title: 'Subscription',
             onTap: () {
-              // TODO: 订阅功能
+              Navigator.pushNamed(context, '/subscription');
             },
           ),
           _buildItem(
@@ -247,7 +247,7 @@ class _MinePageState extends State<MinePage> {
         ],
       ),
 
-      // 底部导航栏（和 HomePage 一致）
+      // Bottom navigation bar (same as HomePage)
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 2, // 0=Home, 1=Test Room, 2=Mine
         onTap: (i) {
@@ -256,7 +256,7 @@ class _MinePageState extends State<MinePage> {
           } else if (i == 1) {
             Navigator.pushNamed(context, '/testRoom');
           } else if (i == 2) {
-            // 已在 Mine，无操作
+            // Already in Mine, no action taken.
           }
         },
         items: const [

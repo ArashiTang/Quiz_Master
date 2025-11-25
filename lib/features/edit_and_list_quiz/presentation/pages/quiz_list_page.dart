@@ -36,10 +36,10 @@ class _QuizListPageState extends State<QuizListPage> {
   Widget build(BuildContext context) {
     final auth = SupabaseAuthService.instance;
 
-    // 用于数据库过滤的 ownerKey（邮箱或 'guest'）
+    // The ownerKey (email address or 'guest') is used for database filtering.
     final ownerKey = auth.currentOwnerKey;
 
-    // 用于标题展示：已登录显示邮箱，未登录显示 Guest
+    // For title display: Email address is displayed if logged in, otherwise Guest is displayed.
     final ownerLabel = auth.currentUser?.email ?? 'Guest';
 
     return Scaffold(
@@ -49,7 +49,7 @@ class _QuizListPageState extends State<QuizListPage> {
       ),
       body: Column(
         children: [
-          // ===== 搜索框 =====
+          // ===== search box =====
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Container(
@@ -86,7 +86,7 @@ class _QuizListPageState extends State<QuizListPage> {
             ),
           ),
 
-          // ===== Quiz 列表 =====
+          // ===== Quiz List =====
           Expanded(
             child: StreamBuilder<List<Quizze>>(
               stream: widget.quizDao.watchQuizzesByOwner(ownerKey),

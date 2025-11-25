@@ -29,7 +29,7 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
   int _passRate = 60; // 0..100
   bool _enableScores = false;
 
-  // -------------------- 未保存时拦截返回 --------------------
+  // -------------------- Intercepting and returning if not saved --------------------
   Future<bool> _confirmDiscard() async {
     if (!_dirty) return true;
     final ok = await showDialog<bool>(
@@ -59,10 +59,10 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
     final args = ModalRoute.of(context)!.settings.arguments;
     if (args is String?) {
       if (args != null) {
-        // 编辑已有 quiz
+        // The quiz has been edited.
         _loadQuiz(args);
       } else {
-        // 新建 quiz，先给自己生成一个临时 id
+        // To create a new quiz, first generate a temporary ID for yourself.
         _draftId = newId('edit_and_list_quiz');
       }
     }
@@ -85,7 +85,7 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
   Future<void> _save() async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    // 当前 owner：
+    // Current owner:
     final ownerEmail =
         _loaded?.ownerKey ?? SupabaseAuthService.instance.currentOwnerKey;
 
@@ -143,17 +143,17 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
       return;
     }
 
-    // 1. 先本地保存，保证数据最新
+    // 1. Save locally first to ensure the data is up-to-date.
     await _save();
     if (_loaded == null) return;
     final quiz = _loaded!;
     final quizId = quiz.id;
 
     try {
-      // 2. 取本地所有题目
+      // 2. Retrieve all local questions
       final questions = await widget.quizDao.getQuestionsByQuiz(quizId);
 
-      // 创建云端 quiz 的 JSON（注意：云端表不需要 id / owner_id，这部分由 API 填）
+      // Create the JSON for the cloud-based quiz (Note: the cloud table does not need id / owner_id, this part is filled in by the API).
       final cloudQuiz = {
         'title': quiz.title,
         'description': quiz.description,
@@ -163,13 +163,13 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
       };
 
       // ==============================
-      // 构建 cloud_questions / cloud_options
+      // Build cloud_questions / cloud_options
       // ==============================
       final List<Map<String, dynamic>> cloudQuestions = [];
       final List<Map<String, dynamic>> cloudOptions = [];
 
       for (final q in questions) {
-        // cloud_questions 按照我们云端表的字段来
+        // cloud_questions are based on the fields in our cloud table.
         cloudQuestions.add({
           'order_index': q.orderIndex,
           'question_type': q.questionType,
@@ -179,21 +179,21 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
           'score': q.score,
         });
 
-        // 取本地选项
+        // Get local options
         final opts = await widget.quizDao.getOptionsByQuestion(q.id);
 
         for (final o in opts) {
           cloudOptions.add({
-            // 这一项只是给 service 用来找 question_id，不会直接写进表
+            // This field is only used by the service to find the question_id; it will not be directly written into the table.
             'question_order_index': q.orderIndex,
-            // 这个才是真正写进 cloud_options.order_index 的
+            // This is what is actually written into cloud_options.order_index.
             'order_index': o.orderIndex,
             'text_value': o.textValue,
           });
         }
       }
 
-      // 3. 调用 service 上传
+      // 3. Call service to upload
       final shareCode = await _auth.uploadQuizToCloud(
         quiz: cloudQuiz,
         questions: cloudQuestions,
@@ -251,7 +251,7 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
     }
   }
 
-  // ------------------------- 题目导航条 -------------------------
+  // ------------------------- Question Navigation Bar -------------------------
   Widget _buildQuestionNav() {
     final quizId = _loaded?.id ?? _draftId;
     if (quizId == null) {
@@ -300,10 +300,10 @@ class _QuizEditorPageState extends State<QuizEditorPage> {
               ),
             GestureDetector(
               onTap: () async {
-                // 新建题目前，若 quiz 还没真正保存过，先保存一次
+                // Before creating a new question, save the quiz once if it hasn't been saved before.
                 if (_loaded == null && _draftId != null) {
                   await _save();
-                  // 如果保存失败（_save 里已经弹出错误提示），这里直接 return
+                  // If saving fails (an error message will pop up in _save), simply return here.
                   if (_loaded == null) return;
                 }
                 final id = _loaded?.id ?? _draftId!;

@@ -71,23 +71,23 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
     return '${two(d.inMinutes)}:${two(d.inSeconds % 60)}';
   }
 
-  // ---------- 评分/结果计算 ----------
+  // ---------- Score/Result Calculation ----------
 
   int _totalPossible() {
     final enableScores = _quiz?.enableScores ?? false;
     if (!enableScores) return _questions.length;
-    // 分数模式：累加每题分（缺省按 1 计）
+    // Scoring mode: Accumulate points for each question (default is 1).
     return _questions.fold<int>(0, (acc, q) => acc + (q.score ?? 1));
   }
 
   int _obtained() {
     final enableScores = _quiz?.enableScores ?? false;
     if (!enableScores) {
-      // 非分数模式：统计 isCorrect == true 的题数
+      // Non-fractional mode: Count the number of questions where isCorrect == true.
       return _answers.values.where((a) => a.isCorrect == true).length;
     }
 
-    // 分数模式：优先使用 run.score；没有的话根据每题 isCorrect 兜底算一遍
+    // Score mode: Use `run.score` first; otherwise, calculate the score based on `isCorrect` for each question.
     final stored = _run?.score;
     if (stored != null) return stored;
 
@@ -165,7 +165,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ===== 顶部 4 行信息 =====
+          // ===== Top 4 lines of information =====
           Center(
             child: Text(
               title,
@@ -193,7 +193,7 @@ class _RecordDetailPageState extends State<RecordDetailPage> {
           ),
           const SizedBox(height: 16),
 
-          // ===== 逐题展示 =====
+          // ===== Question by question =====
           for (int i = 0; i < _questions.length; i++)
             _QuestionBlock(
               index: i,
@@ -220,7 +220,7 @@ class _QuestionBlock extends StatelessWidget {
     required this.answer,
   });
 
-  /// /// 将 JSON 数组字符串转成 Set<String>，例如 '["1","2","4"]'
+  /// Converts a JSON array string to a Set<String>, for example, '["1","2","4"]'
   static Set<String> _parseSet(String jsonStr) {
     if (jsonStr.isEmpty) return {};
     try {
@@ -234,19 +234,19 @@ class _QuestionBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 题目正确答案文本（Question.correctAnswerTexts JSON 字符串）
+    // The correct answer text for the question (Question.correctAnswerTexts JSON string)
     final correctTexts = _parseSet(q.correctAnswerTexts);
 
-// 作答时勾选的选项 ID（PracticeAnswer.chosenOptions JSON 字符串）
+    // The ID of the option selected when answering the question (PracticeAnswer.chosenOptions JSON string).
     final chosenIds = _parseSet(answer?.chosenOptions ?? '[]');
 
-    // 将选中的 ID 映射为对应的选项文本
+    // Map the selected ID to the corresponding option text.
     final chosenTexts = options
         .where((o) => chosenIds.contains(o.id))
         .map((o) => o.textValue)
         .toSet();
 
-    // 判定是否作答正确：两个集合完全相同即可
+    // To determine if an answer is correct: the two sets must be completely identical.
     final isCorrect = chosenTexts.isNotEmpty &&
         chosenTexts.length == correctTexts.length &&
         chosenTexts.containsAll(correctTexts);
@@ -258,7 +258,7 @@ class _QuestionBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 题号 + 判定结果
+        // Question number + judgment result
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Row(
@@ -282,7 +282,7 @@ class _QuestionBlock extends StatelessWidget {
           ),
         ),
 
-        // 题干
+        // Question stem
         Padding(
           padding: const EdgeInsets.only(bottom: 4.0),
           child: Text(
@@ -291,21 +291,21 @@ class _QuestionBlock extends StatelessWidget {
           ),
         ),
 
-        // 选项列表
+        // Option list
         ...options.map((o) {
           final isOptionCorrect = correctTexts.contains(o.textValue);
           final isOptionChosen = chosenTexts.contains(o.textValue);
 
-          // 右侧小圆点颜色：
-          //  绿色：该选项是正确答案
-          //  灰色：非正确答案
+          // Color of the small dot on the right:
+          //  Green: This option is the correct answer.
+          //  Gray: Incorrect answer
           final dotColor = isOptionCorrect ? Colors.green : Colors.grey;
 
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 2.0),
             child: Row(
               children: [
-                // 选项文本（正确答案高亮为绿色）
+                // Option text (correct answer highlighted in green)
                 Expanded(
                   child: Text(
                     o.textValue,
@@ -315,7 +315,7 @@ class _QuestionBlock extends StatelessWidget {
                     ),
                   ),
                 ),
-                // 右侧小圆点（是否选中）
+                // The small dot on the right (whether it's selected).
                 Icon(
                   Icons.circle,
                   size: 10,

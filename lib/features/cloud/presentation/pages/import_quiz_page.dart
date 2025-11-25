@@ -6,7 +6,7 @@ import 'package:quiz_master/core/database/daos/quiz_dao.dart';
 class ImportQuizPage extends StatefulWidget {
   static const routeName = '/import_quiz';
 
-  final QuizDao quizDao; // 需要从外面传进来的 dao
+  final QuizDao quizDao; // The dao needs to be transmitted from the outside.
 
   const ImportQuizPage({
     Key? key,
@@ -50,7 +50,7 @@ class _ImportQuizPageState extends State<ImportQuizPage> {
     setState(() => _loading = true);
 
     try {
-      // 调用 Supabase 导入方法
+      // Calling the Supabase import method
       await _auth.importQuizFromCloud(
         shareCode: code,
         quizDao: widget.quizDao,
@@ -58,7 +58,7 @@ class _ImportQuizPageState extends State<ImportQuizPage> {
 
       if (!mounted) return;
 
-      // 导入成功提示
+      // Import successful message
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(

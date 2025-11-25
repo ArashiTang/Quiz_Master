@@ -42,7 +42,7 @@ class _CloudQuizDetailPageState extends State<CloudQuizDetailPage> {
     });
 
     try {
-      // 1. quiz 本体
+      // 1. quiz ontology
       final quizRes = await _client
           .from('cloud_quizzes')
           .select()
@@ -58,7 +58,7 @@ class _CloudQuizDetailPageState extends State<CloudQuizDetailPage> {
 
       final quizRow = quizRes as Map<String, dynamic>;
 
-      // 2. questions，按 order_index 排序
+      // 2. Questions, sorted by order_index
       final questionsRes = await _client
           .from('cloud_questions')
           .select()
@@ -68,7 +68,7 @@ class _CloudQuizDetailPageState extends State<CloudQuizDetailPage> {
       final questions =
       (questionsRes as List).cast<Map<String, dynamic>>();
 
-      // 3. options – 逐题查询，按 order_index 排序
+      // 3. options – Search by question, sorted by order_index
       final List<Map<String, dynamic>> allOptions = [];
       for (final q in questions) {
         final qId = q['id'] as String;
@@ -123,7 +123,7 @@ class _CloudQuizDetailPageState extends State<CloudQuizDetailPage> {
             style: const TextStyle(fontSize: 18),
           ),
 
-          // ⬇⬇⬇ 自定义 Copy 按钮
+          // Custom Copy button
           actions: [
             TextButton(
               onPressed: () async {
@@ -131,7 +131,7 @@ class _CloudQuizDetailPageState extends State<CloudQuizDetailPage> {
                   await Clipboard.setData(ClipboardData(text: code));
                   Navigator.of(context).pop();
 
-                  // 提示复制成功
+                  // Copying successful.
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Copied to clipboard!'),
@@ -188,7 +188,7 @@ class _CloudQuizDetailPageState extends State<CloudQuizDetailPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Quiz deleted from Cloud')),
       );
-      Navigator.of(context).pop(); // 返回列表页
+      Navigator.of(context).pop(); // Return to list page
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -266,7 +266,7 @@ class _CloudQuizDetailPageState extends State<CloudQuizDetailPage> {
               ],
             ),
           ),
-          // 底部 Delete 按钮
+          // Bottom Delete button
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -305,12 +305,12 @@ class _CloudQuizDetailPageState extends State<CloudQuizDetailPage> {
     final qText = question['content'] as String? ?? '';
     final options = _optionsForQuestion(question['id'] as String);
 
-    // correct_answer_ids: Supabase 里是 text(JSON)，这里做兼容解析
+    // correct_answer_ids: In Supabase, this is text (JSON), and we're handling compatibility parsing here.
     List<int> correctOrderIndexes = [];
     final raw = question['correct_answer_ids'];
 
     if (raw is List) {
-      // 如果以后你把列类型改成 jsonb，这里也 OK
+      // If you change the column type to jsonb in the future, this will also be fine.
       correctOrderIndexes =
           raw.map((e) => (e as num).toInt()).toList();
     } else if (raw is String && raw.isNotEmpty) {
@@ -322,7 +322,7 @@ class _CloudQuizDetailPageState extends State<CloudQuizDetailPage> {
               .toList();
         }
       } catch (_) {
-        // 解析失败就当没有正确答案
+        // If the parsing fails, treat it as if there is no correct answer.
       }
     }
 

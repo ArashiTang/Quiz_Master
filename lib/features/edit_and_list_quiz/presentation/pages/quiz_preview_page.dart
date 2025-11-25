@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:quiz_master/core/database/daos/quiz_dao.dart';
 import 'package:quiz_master/core/database/db/app_db.dart';
 
-/// 路由参数：只需 quizId 和选项样式（0=ABC, 1=123）
+/// Routing parameters: Only quizId and option style are needed (0=ABC, 1=123)
 class QuizPreviewArgs {
   final String quizId;
   final int optionStyle;
   const QuizPreviewArgs({required this.quizId, required this.optionStyle});
 }
 
-/// 预览内部用的聚合模型
+/// Preview the internal aggregation model
 class _PreviewQuestion {
   final Question question;
   final List<QuizOption> options;
@@ -70,7 +70,7 @@ class QuizPreviewPage extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // 顶部信息
+              // Top Information
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -101,7 +101,7 @@ class QuizPreviewPage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // 题目列表
+              // Question List
               for (int i = 0; i < questions.length; i++) ...[
                 _QuestionCard(
                   index: i,
@@ -135,7 +135,7 @@ class _QuestionCard extends StatelessWidget {
     required this.optionLabel,
   });
 
-  /// 解析 Question.correctAnswerTexts 里存的 JSON 字符串（["A text", "B text"]）
+  /// Parse the JSON string (["A text", "B text"]) stored in Question.correctAnswerTexts.
   List<String> _parseCorrectTexts(String raw) {
     if (raw.isEmpty) return const [];
     try {
@@ -159,7 +159,7 @@ class _QuestionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 标题行：题号/类型/分值
+              // Title row: Question number/type/score
               Row(
                 children: [
                   Text('Q${index + 1}',
@@ -177,7 +177,7 @@ class _QuestionCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
 
-              // 题干
+              // Question stem
               Text(
                 data.question.content.isEmpty
                     ? '(No content)'
@@ -186,7 +186,7 @@ class _QuestionCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // 选项
+              // Options
               Column(
                 children: [
                   for (int i = 0; i < data.options.length; i++)

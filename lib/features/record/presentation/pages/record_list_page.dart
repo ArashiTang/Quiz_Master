@@ -45,7 +45,7 @@ class _RecordListPageState extends State<RecordListPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 当前 ownerKey：已登录 = 邮箱，未登录 = 'Guest'
+    // Current ownerKey: Logged in = Email address, Not logged in = 'Guest'
     final ownerKey = SupabaseAuthService.instance.currentOwnerKey;
 
     return Scaffold(
@@ -62,7 +62,7 @@ class _RecordListPageState extends State<RecordListPage> {
         children: [
           const SizedBox(height: 12),
 
-          // 搜索框
+          // search box
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: TextField(
@@ -82,7 +82,7 @@ class _RecordListPageState extends State<RecordListPage> {
 
           const SizedBox(height: 12),
 
-          // 记录列表
+          // Record list
           Expanded(
             child: StreamBuilder<List<PracticeRun>>(
               stream: widget.practiceDao.watchRunsByOwner(ownerKey),
@@ -99,14 +99,14 @@ class _RecordListPageState extends State<RecordListPage> {
                   itemBuilder: (context, i) {
                     final run = runs[i];
 
-                    // 读取 quiz 信息
+                    // Read quiz information
                     return FutureBuilder<Quizze?>(
                       future: widget.quizDao.getQuizById(run.quizId),
                       builder: (context, quizSnap) {
                         final quiz = quizSnap.data;
                         final title = quiz?.title ?? "(Untitled Quiz)";
 
-                        // 搜索过滤
+                        // Search filters
                         if (_keyword.isNotEmpty &&
                             !title
                                 .toLowerCase()
@@ -114,7 +114,7 @@ class _RecordListPageState extends State<RecordListPage> {
                           return const SizedBox.shrink();
                         }
 
-                        // 加载题目用于计算总分
+                        // Load the questions to calculate the total score
                         return FutureBuilder<List<Question>>(
                           future: widget.quizDao.getQuestionsByQuiz(run.quizId),
                           builder: (context, questionSnap) {

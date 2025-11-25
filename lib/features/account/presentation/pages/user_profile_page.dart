@@ -41,7 +41,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     }
 
     final email = user.email ?? '';
-    // 取 profile 里的 username
+    // Retrieve username from profile
     final profile = await _auth.getCurrentProfile();
     final username =
     (profile?['username'] as String?)?.trim().isNotEmpty == true
@@ -136,7 +136,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         ),
       );
     } else {
-      // 没有头像时显示方形边框
+      // A square border is displayed when there is no profile picture.
       child = Container(
         width: size,
         height: size,
@@ -151,7 +151,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    const headerColor = Color(0xFFB9A6FF); // 和 MinePage 顶部颜色保持一致
+    const headerColor = Color(0xFFB9A6FF); // Keep the color consistent with the top of MinePage
 
     return Scaffold(
       appBar: AppBar(
@@ -167,7 +167,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
         children: [
-          // Avatar 行
+          // Avatar
           ListTile(
             title: const Text(
               'Avatar',
@@ -188,7 +188,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           ),
           const Divider(height: 1),
 
-          // User name 行
+          // User name
           ListTile(
             title: const Text(
               'User Name',

@@ -13,7 +13,7 @@ part 'practice_dao.g.dart';
 class PracticeDao extends DatabaseAccessor<AppDb> with _$PracticeDaoMixin {
   PracticeDao(AppDb db) : super(db);
 
-  // ===== 运行列表：按 ownerKey 过滤 =====
+  // ===== Run list: Filtered by ownerKey =====
 
   Future<List<PracticeRun>> getRunsByOwner(String ownerKey) {
     return (select(practiceRuns)
@@ -29,9 +29,9 @@ class PracticeDao extends DatabaseAccessor<AppDb> with _$PracticeDaoMixin {
         .watch();
   }
 
-  // ===== 开始 / 结束一场练习 =====
+  // ===== Start / End a practice session =====
 
-  /// 开始一场练习：强制传 ownerKey（'Guest' 或邮箱）
+  /// Let's start an exercise: Force the sending of the ownerKey ('Guest' or email address).
   Future<String> startRun(
       String quizId,
       String ownerKey, {
@@ -49,7 +49,7 @@ class PracticeDao extends DatabaseAccessor<AppDb> with _$PracticeDaoMixin {
     return id;
   }
 
-  /// 提交时调用：写结束时间与总分
+  /// Submission call: Write end time and total score
   Future<void> finishRun(
       String runId,
       int score, {
@@ -63,16 +63,16 @@ class PracticeDao extends DatabaseAccessor<AppDb> with _$PracticeDaoMixin {
     );
   }
 
-  // ===== 答题：有则更新 / 无则插入 =====
+  // ===== Answer: Update if it exists / Insert if it doesn't exist. =====
 
-  /// 内部统一方法：基于 (runId, questionId) upsert 一条答案
+  /// Internal unified method: Upsert an answer based on (runId, questionId)
   Future<void> upsertAnswer({
     required String runId,
     required String questionId,
     required Set<String> chosenIds,
     required bool isCorrect,
   }) async {
-    // 查有没有旧记录
+    // Check for old records
     final existing = await (select(practiceAnswers)
       ..where((t) =>
       t.runId.equals(runId) & t.questionId.equals(questionId)))
@@ -82,7 +82,7 @@ class PracticeDao extends DatabaseAccessor<AppDb> with _$PracticeDaoMixin {
     final ts = nowMs();
 
     if (existing == null) {
-      // 插入
+      // insert
       await into(practiceAnswers).insert(
         PracticeAnswersCompanion(
           id: Value(newId('ans')),
@@ -94,7 +94,7 @@ class PracticeDao extends DatabaseAccessor<AppDb> with _$PracticeDaoMixin {
         ),
       );
     } else {
-      // 更新
+      // renew
       await (update(practiceAnswers)..where((t) => t.id.equals(existing.id)))
           .write(
         PracticeAnswersCompanion(
@@ -106,7 +106,6 @@ class PracticeDao extends DatabaseAccessor<AppDb> with _$PracticeDaoMixin {
     }
   }
 
-  /// 兼容你之前的调用：外部还在用 List<String> + correct
   Future<void> saveAnswer({
     required String runId,
     required String questionId,
@@ -121,7 +120,7 @@ class PracticeDao extends DatabaseAccessor<AppDb> with _$PracticeDaoMixin {
     );
   }
 
-  // ===== 读取指定 run 的所有作答 =====
+  // ===== Read all answers for the specified run. =====
 
   Future<List<PracticeAnswer>> getAnswersByRun(String runId) {
     return (select(practiceAnswers)
@@ -137,7 +136,7 @@ class PracticeDao extends DatabaseAccessor<AppDb> with _$PracticeDaoMixin {
         .watch();
   }
 
-  // ===== 删除整场（含答案） =====
+  // ===== Delete the entire session (including answers). =====
 
   Future<void> deleteRunCascade(String runId) async {
     await (delete(practiceAnswers)..where((t) => t.runId.equals(runId))).go();

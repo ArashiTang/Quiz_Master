@@ -27,20 +27,18 @@ class AppDb extends _$AppDb {
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
-      // 初次安装：直接创建目前所有表和字段
+      // Initial installation: Create all current tables and fields directly
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
-      // ⚠️ 特别注意：
-      // 之前这里有 if (from < 3) { addColumn(quizzes.ownerKey) }
-      // 那段一定要删掉！因为现在 schema 里已经自带 ownerKey 了
-
-      // 例：从 3 升级到 4 时给 practice_runs 加 owner_key（如果你需要）
+      // Special Note:
+      // Previously, there was an `if (from < 3) { addColumn(quizzes.ownerKey) }` statement here.
+      // Example: Add `owner_key` to `practice_runs` when upgrading from 3 to 4 (if needed).
       if (from < 4) {
         await m.addColumn(practiceRuns, practiceRuns.ownerKey);
       }
 
-      // 未来如果有新的字段，在下面继续加，例如：
+      // If new fields are added in the future, continue adding them below, for example:
       // if (from < 5) { await m.addColumn(...); }
     },
   );

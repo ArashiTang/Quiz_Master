@@ -9,7 +9,7 @@ class OnlineTestApi {
 
   final SupabaseClient _client;
 
-  /// 创建一个 test，返回最新数据（含 share_code）
+  /// Create a test instance and return the latest data (including share_code).
   Future<Test> createTest({
     required String title,
     required String quizId,
@@ -32,7 +32,7 @@ class OnlineTestApi {
     return Test.fromJson(inserted);
   }
 
-  /// 根据分享码查找
+  /// Search by share code
   Future<Test?> fetchByShareCode(String shareCode) async {
     final res = await _client
         .from('test')
@@ -43,7 +43,7 @@ class OnlineTestApi {
     return Test.fromJson(res);
   }
 
-  /// 当前用户创建的测试列表
+  /// Test list created by the current user
   Future<List<Test>> fetchOwnTests() async {
     final email = SupabaseAuthService.instance.currentUserEmail;
     if (email == null) return [];
