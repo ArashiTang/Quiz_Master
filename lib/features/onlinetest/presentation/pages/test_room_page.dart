@@ -130,13 +130,17 @@ class _TestRoomPageState extends State<TestRoomPage> {
         return;
       }
       final email = SupabaseAuthService.instance.currentUserEmail;
-      if (email != null) {
-        final existed = await _api.findExistingResult(testId: test.id, email: email);
-        if (existed != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('你已经参加过这个测试')));
-          return;
-        }
+      if (email == null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('请先登录')));
+        return;
+      }
+
+      final existed = await _api.findExistingResult(testId: test.id, email: email);
+      if (existed != null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('你已经参加过这个测试')));
+        return;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -144,12 +148,6 @@ class _TestRoomPageState extends State<TestRoomPage> {
           content: Text('进入测试：${test.title} (time limit ${test.timeLimit} mins)'),
         ),
       );
-      final email = SupabaseAuthService.instance.currentUserEmail;
-      if (email == null) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('请先登录')));
-        return;
-      }
 
       final quizId = await SupabaseAuthService.instance.importQuizFromCloud(
         shareCode: test.quizId,
