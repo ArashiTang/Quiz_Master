@@ -44,8 +44,7 @@ class _HomePageState extends State<HomePage> {
 
           // 这里根据按钮跳转页面
           if (i == 1) {
-            // TODO: 未来 Test Room 首页面建好后，打开路由
-            // Navigator.pushNamed(context, '/testRoomHome');
+            Navigator.pushNamed(context, '/testRoom');
           } else if (i == 2) {
             // 进入 MinePage（你在 app.dart 里已经配过 '/mine'）
             Navigator.pushNamed(context, '/mine');
@@ -258,48 +257,25 @@ class _HomePageState extends State<HomePage> {
 
   // Create Test 区域
   Widget _buildCreateTestSection(BuildContext context) {
-    Widget stat(String num, String label) {
-      return Expanded(
-        child: Column(
-          children: [
-            Text(num,
-                style: const TextStyle(
-                    fontSize: 24, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
-            Text(label, style: const TextStyle(color: Colors.black54)),
-          ],
-        ),
-      );
-    }
-
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       child: Column(
         children: [
           ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Create Test',
-                style: TextStyle(fontWeight: FontWeight.w600)),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('Enter', style: TextStyle(color: Colors.black54)),
-                SizedBox(width: 4),
-                Icon(Icons.chevron_right),
-              ],
-            ),
+            title: const Text('Create Test'),
+            trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // TODO: 进入“Create Test”页面
+              Navigator.pushNamed(context, '/createTest');
             },
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              stat('3', 'Exams'),
-              stat('3', 'Completed'),
-              stat('69', 'Passed'),
-            ],
+          const Divider(height: 1),
+          ListTile(
+            title: const Text('Test Detail'),
+            subtitle: const Text('get more detail of online test'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.pushNamed(context, '/testList');
+            },
           ),
         ],
       ),

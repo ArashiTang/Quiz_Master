@@ -254,8 +254,7 @@ class _MinePageState extends State<MinePage> {
           if (i == 0) {
             Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
           } else if (i == 1) {
-            // 未来 Test Room 首页面
-            // Navigator.pushNamed(context, '/testRoomHome');
+            Navigator.pushNamed(context, '/testRoom');
           } else if (i == 2) {
             // 已在 Mine，无操作
           }

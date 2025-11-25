@@ -32,10 +32,13 @@ import 'features/account/presentation/pages/reset_password_page.dart';
 import 'features/account/presentation/pages/user_profile_page.dart';
 import 'features/account/presentation/pages/change_name_page.dart';
 
-//Cloud
+//Cloud and Online
 import 'features/cloud/presentation/pages/cloud_quiz_list_page.dart';
 import 'features/cloud/presentation/pages/cloud_quiz_detail_page.dart';
 import 'features/cloud/presentation/pages/import_quiz_page.dart';
+import 'features/onlinetest/presentation/pages/create_test_page.dart';
+import 'features/onlinetest/presentation/pages/test_list_page.dart';
+import 'features/onlinetest/presentation/pages/test_room_page.dart';
 
 class QuizApp extends StatelessWidget {
   const QuizApp({super.key});
@@ -77,6 +80,11 @@ class QuizApp extends StatelessWidget {
         '/register': (_) => const RegisterPage(),
         '/resetPassword': (_) => const ResetPasswordPage(),
         '/userProfile': (_) => const UserProfilePage(),
+
+        // Online test
+        '/createTest': (_) => const CreateTestPage(),
+        '/testList': (_) => const TestListPage(),
+        '/testRoom': (_) => const TestRoomPage(),
 
         // Cloud 固定页面（无参数）
         '/cloudQuizList': (_) => const CloudQuizListPage(),
