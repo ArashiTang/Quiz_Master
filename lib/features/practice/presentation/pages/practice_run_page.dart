@@ -6,17 +6,31 @@ import 'package:quiz_master/core/database/daos/quiz_dao.dart';
 import 'package:quiz_master/core/database/daos/practice_dao.dart';
 import 'package:quiz_master/core/database/db/app_db.dart';
 import 'package:quiz_master/core/remote/supabase_auth_service.dart';
+import 'package:quiz_master/features/onlinetest/data/online_test_api.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class PracticeRunArgs {
+  PracticeRunArgs({
+    required this.quizId,
+    this.testId,
+  });
+
+  final String quizId;
+  final String? testId;
+}
 
 class PracticeRunPage extends StatefulWidget {
   final String quizId;
   final QuizDao quizDao;
   final PracticeDao practiceDao;
+  final String? testId;
 
   const PracticeRunPage({
     super.key,
     required this.quizId,
     required this.quizDao,
     required this.practiceDao,
+    this.testId,
   });
 
   @override
@@ -27,6 +41,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _scrollController = ScrollController();
   final _listKey = GlobalKey();
+  final _onlineTestApi = OnlineTestApi(Supabase.instance.client);
 
   Quizze? _quiz;
   final List<Question> _questions = [];
@@ -250,13 +265,16 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
 
     // 2) 计算得分 + 写每题答案
     int score = 0;
+    int totalScore = 0;
     final enableScores = _quiz?.enableScores ?? false;
 
     for (final q in _questions) {
       final chosen = _picked[q.id] ?? <String>{};
       final correct = _judgeCorrect(q, chosen);
+      final qScore = enableScores ? (q.score ?? 1) : 1;
+      totalScore += qScore;
       if (correct) {
-        score += enableScores ? (q.score ?? 1) : 1;
+        score += qScore;
       }
       await widget.practiceDao.saveAnswer(
         runId: runId,
@@ -269,8 +287,51 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     // 3) 写结束时间与总分
     await widget.practiceDao.finishRun(runId, score);
 
+    // 4) 在线测验：将结果写回 Supabase
+    await _uploadTestResult(
+      runId: runId,
+      score: score,
+      totalScore: totalScore,
+    );
+
     if (!mounted) return;
     Navigator.pop(context); // 返回选择页
+  }
+
+  Future<void> _uploadTestResult({
+    required String runId,
+    required int score,
+    required int totalScore,
+  }) async {
+    final testId = widget.testId;
+    if (testId == null) return;
+
+    final email = SupabaseAuthService.instance.currentUserEmail;
+    if (email == null) return;
+
+    final percent = totalScore == 0 ? 0.0 : (score / totalScore * 100);
+    final passRate = _quiz?.passRate ?? 60;
+    final result = percent >= passRate ? 'pass' : 'fail';
+    final userName = SupabaseAuthService
+        .instance.currentUser?.userMetadata?['username']
+        ?.toString()
+        .trim();
+
+    try {
+      await _onlineTestApi.submitResult(
+        testId: testId,
+        userEmail: email,
+        userName: userName,
+        scorePercent: percent,
+        result: result,
+        localRecordId: runId,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Uploading test results failed: $e')),
+      );
+    }
   }
 
   @override

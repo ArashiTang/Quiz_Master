@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -19,19 +20,35 @@ class _TestResultPageState extends State<TestResultPage> {
   final _api = OnlineTestApi(Supabase.instance.client);
   bool _loading = true;
   List<TestResult> _results = [];
+  StreamSubscription<List<TestResult>>? _subscription;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _listenResults();
   }
 
-  Future<void> _load() async {
-    final items = await _api.fetchResults(widget.testId);
-    setState(() {
-      _results = items;
-      _loading = false;
-    });
+  void _listenResults() {
+    _subscription?.cancel();
+    _subscription = _api.watchResults(widget.testId).listen(
+          (items) {
+        setState(() {
+          _results = items;
+          _loading = false;
+        });
+      },
+      onError: (_) {
+        setState(() {
+          _loading = false;
+        });
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   @override

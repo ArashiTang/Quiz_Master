@@ -104,10 +104,14 @@ class QuizApp extends StatelessWidget {
 
         // ========== Practice Run ==========
         if (settings.name == '/practiceRun') {
-          final quizId = settings.arguments as String;
+          final args = settings.arguments;
+          final parsedArgs = args is PracticeRunArgs
+              ? args
+              : PracticeRunArgs(quizId: args as String);
           return MaterialPageRoute(
             builder: (_) => PracticeRunPage(
-              quizId: quizId,
+              quizId: parsedArgs.quizId,
+              testId: parsedArgs.testId,
               quizDao: quizDao,
               practiceDao: practiceDao,
             ),

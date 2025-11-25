@@ -87,4 +87,36 @@ class OnlineTestApi {
         .eq('user_email', email)
         .maybeSingle();
   }
+
+  Future<void> submitResult({
+    required String testId,
+    required String userEmail,
+    required double scorePercent,
+    required String result,
+    String? userName,
+    String? localRecordId,
+  }) async {
+    await _client.from('testresult').insert({
+      'test_id': testId,
+      'user_email': userEmail,
+      'user_name': userName ?? '',
+      'score_percent': scorePercent,
+      'result': result,
+      'submitted_at': DateTime.now().toIso8601String(),
+      'local_record_id': localRecordId,
+    });
+  }
+
+  Stream<List<TestResult>> watchResults(String testId) {
+    return _client
+        .from('testresult')
+        .stream(primaryKey: ['id'])
+        .eq('test_id', testId)
+        .order('score_percent', ascending: false)
+        .map(
+          (res) => res
+          .map((e) => TestResult.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }

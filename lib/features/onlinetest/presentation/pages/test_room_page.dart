@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:quiz_master/core/database/daos/quiz_dao.dart';
+import 'package:quiz_master/features/practice/presentation/pages/practice_run_page.dart';
 
 import '../../data/online_test_api.dart';
 import '../../../../core/remote/supabase_auth_service.dart';
@@ -121,25 +122,25 @@ class _TestRoomPageState extends State<TestRoomPage> {
       final test = await _api.fetchByShareCode(code);
       if (test == null) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('分享码不存在')));
+            .showSnackBar(const SnackBar(content: Text('Share code does not exist')));
         return;
       }
       if (!test.allowEntry) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('该测试暂未开放')));
+            .showSnackBar(const SnackBar(content: Text('The test is not yet open.')));
         return;
       }
       final email = SupabaseAuthService.instance.currentUserEmail;
       if (email == null) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('请先登录')));
+            .showSnackBar(const SnackBar(content: Text('Please log in first.')));
         return;
       }
 
       final existed = await _api.findExistingResult(testId: test.id, email: email);
       if (existed != null) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('你已经参加过这个测试')));
+            .showSnackBar(const SnackBar(content: Text('You have already taken this test.')));
         return;
       }
 
@@ -156,10 +157,14 @@ class _TestRoomPageState extends State<TestRoomPage> {
 
       if (!mounted) return;
 
-      Navigator.pushNamed(context, '/practiceRun', arguments: quizId);
+      Navigator.pushNamed(
+        context,
+        '/practiceRun',
+        arguments: PracticeRunArgs(quizId: quizId, testId: test.id),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('加载失败: $e')));
+          .showSnackBar(SnackBar(content: Text('Loading failed: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
