@@ -272,8 +272,8 @@ class _RegisterPageState extends State<RegisterPage> {
     if (password.length < 6) {
       _passwordError = 'Use at least 6 characters.';
       hasError = true;
-    } else if (!RegExp(r'^[A-Za-z0-9]+$').hasMatch(password)) {
-      _passwordError = 'Letters and numbers only (no spaces).';
+    } else if (password.contains(RegExp(r'\s'))) {
+      _passwordError = 'Password cannot contain spaces.';
       hasError = true;
     }
 

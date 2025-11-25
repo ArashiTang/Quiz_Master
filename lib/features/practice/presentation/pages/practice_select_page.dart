@@ -22,39 +22,55 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
 
   @override
   Widget build(BuildContext context) {
+    const bgColor = Color(0xFFE9F5EA);
+    const cardShadow = BoxShadow(
+      blurRadius: 8,
+      offset: Offset(0, 4),
+      color: Color(0x22000000),
+    );
     return Scaffold(
-      backgroundColor: const Color(0xFFE9F5EA),
+      backgroundColor: bgColor,
       appBar: AppBar(
         title: const Text('Practice'),
-        backgroundColor: Colors.white,
+        centerTitle: true,
+        backgroundColor: bgColor,
         foregroundColor: Colors.black87,
         elevation: 0,
       ),
       body: Column(
         children: [
-          // search box
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TextField(
-              controller: _search,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: 'Search',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Choose a quiz to practice',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
               ),
-            ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _search,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Search',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+        ),
 
-          // List
           Expanded(
             child: StreamBuilder<List<Quizze>>(
               stream: widget.quizDao.watchQuizzesByOwner(SupabaseAuthService.instance.currentOwnerKey),
@@ -91,15 +107,9 @@ class _PracticeSelectPageState extends State<PracticeSelectPage> {
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.white, // White card + green background
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(
-                              blurRadius: 8,
-                              offset: Offset(0, 4),
-                              color: Color(0x22000000),
-                            ),
-                          ],
+                          boxShadow: const [cardShadow],
                         ),
                         padding:
                         const EdgeInsets.fromLTRB(16, 18, 12, 18),

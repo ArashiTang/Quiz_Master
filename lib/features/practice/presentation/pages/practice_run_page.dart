@@ -217,11 +217,16 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
   // ---------- Exit/Submit ----------
 
   Future<bool> _confirmExit() async {
+    final isTest = widget.testId != null;
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Exit?'),
-        content: const Text('No data will be saved after exiting.'),
+        title: Text(isTest ? 'Submit and exit?' : 'Exit?'),
+        content: Text(
+          isTest
+              ? 'Exiting the test will submit your current answers.'
+              : 'No data will be saved after exiting.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -229,32 +234,38 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Exit'),
+            child: Text(isTest ? 'Submit & Exit' : 'Exit'),
           ),
         ],
       ),
     );
+    if (ok == true && isTest) {
+      await _submit(confirmDialog: false);
+      return false;
+    }
     return ok == true;
   }
 
-  Future<void> _submit() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Are you sure you want to submit?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
+  Future<void> _submit({bool confirmDialog = true}) async {
+    if (confirmDialog) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Are you sure you want to submit?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirm'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
 
     // 1) First, create a run instance (using the page entry time as startedAt).
     final runId = await widget.practiceDao.startRun(
@@ -295,7 +306,11 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     );
 
     if (!mounted) return;
-    Navigator.pop(context); // Return to selection page
+    if (widget.testId != null) {
+      Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    } else {
+      Navigator.pop(context); // Return to selection page
+    }
   }
 
   Future<void> _uploadTestResult({

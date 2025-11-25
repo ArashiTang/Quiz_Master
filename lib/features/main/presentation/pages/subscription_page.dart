@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class SubscriptionPage extends StatelessWidget {
   const SubscriptionPage({super.key});
 
-  static const _backgroundColor = Color(0xFFE8E3FF);
+  static const _backgroundColor = Colors.white;
   static const _cardColor = Color(0xFFB5A7FF);
 
   void _showPurposeDialog(BuildContext context) {
@@ -35,6 +35,13 @@ class SubscriptionPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 10,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -86,31 +93,38 @@ class SubscriptionPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        backgroundColor: _backgroundColor,
+        backgroundColor: _cardColor,
+        foregroundColor: Colors.white,
         elevation: 0,
-        leadingWidth: 90,
-        leading: TextButton.icon(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
-          label: const Text(
-            'Return',
-            style: TextStyle(color: Colors.black),
-          ),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.only(left: 12),
-          ),
         ),
         centerTitle: true,
         title: const Text(
           'Subscription',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
       body: Center(
-        child: _buildPlanCard(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Upgrade to unlock cloud features and test analytics.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildPlanCard(context),
+            ],
+          ),
+        ),
       ),
     );
   }

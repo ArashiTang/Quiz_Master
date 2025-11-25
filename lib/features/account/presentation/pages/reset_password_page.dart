@@ -298,7 +298,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               borderRadius: BorderRadius.circular(8),
             ),
             labelText: 'New password',
-            helperText: 'Use 6+ characters (letters / numbers).',
+            helperText: 'Use 6+ characters (no spaces).',
             errorText: _pwdError,
             suffixIcon: IconButton(
               icon:
@@ -378,6 +378,12 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     if (pwd.length < 6) {
       setState(() {
         _pwdError = 'Password must be at least 6 characters.';
+      });
+      return;
+    }
+    if (pwd.contains(RegExp(r'\s'))) {
+      setState(() {
+        _pwdError = 'Password cannot contain spaces.';
       });
       return;
     }

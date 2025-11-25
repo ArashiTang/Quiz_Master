@@ -47,42 +47,56 @@ class _RecordListPageState extends State<RecordListPage> {
   Widget build(BuildContext context) {
     // Current ownerKey: Logged in = Email address, Not logged in = 'Guest'
     final ownerKey = SupabaseAuthService.instance.currentOwnerKey;
+    const bgColor = Color(0xFFFFE5E5);
+    const cardShadow = BoxShadow(
+      blurRadius: 6,
+      offset: Offset(0, 3),
+      color: Color(0x22000000),
+    );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFE5E5),
+      backgroundColor: bgColor,
       appBar: AppBar(
         leading: BackButton(onPressed: () => Navigator.pop(context)),
         title: const Text("Record"),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: bgColor,
         foregroundColor: Colors.black87,
         elevation: 0,
       ),
       body: Column(
         children: [
-          const SizedBox(height: 12),
-
-          // search box
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: TextField(
-              controller: _search,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: "Search",
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "View your past records",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _search,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: "Search",
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
           ),
+        ),
 
-          const SizedBox(height: 12),
-
-          // Record list
           Expanded(
             child: StreamBuilder<List<PracticeRun>>(
               stream: widget.practiceDao.watchRunsByOwner(ownerKey),
@@ -158,13 +172,7 @@ class _RecordListPageState extends State<RecordListPage> {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(16),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      blurRadius: 6,
-                                      offset: Offset(0, 3),
-                                      color: Color(0x22000000),
-                                    ),
-                                  ],
+                                  boxShadow: const [cardShadow],
                                 ),
                                 padding: const EdgeInsets.fromLTRB(
                                     16, 18, 12, 18),

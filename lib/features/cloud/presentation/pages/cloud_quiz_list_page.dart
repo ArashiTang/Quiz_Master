@@ -52,7 +52,12 @@ class _CloudQuizListPageState extends State<CloudQuizListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final themePurple = const Color(0xFFE7F0FF);
+    const themePurple = Color(0xFFE7F0FF);
+    const cardShadow = BoxShadow(
+      blurRadius: 8,
+      offset: Offset(0, 4),
+      color: Color(0x22000000),
+    );
 
     final filtered = _cloudQuizzes.where((q) {
       final name = q.title.toLowerCase();
@@ -66,27 +71,42 @@ class _CloudQuizListPageState extends State<CloudQuizListPage> {
           'Cloud',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
         backgroundColor: themePurple,
         elevation: 0,
       ),
       body: Column(
         children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: 'Search',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                  const Text(
+                  'Manage your cloud quizzes',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              onChanged: (v) {
-                setState(() => _search = v);
-              },
+                    const SizedBox(height: 12),
+                    TextField(
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search),
+                        hintText: 'Search',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onChanged: (v) {
+                        setState(() => _search = v);
+                      },
+                    ),
+                  ],
             ),
           ),
           if (_loading)
@@ -118,8 +138,9 @@ class _CloudQuizListPageState extends State<CloudQuizListPage> {
                           horizontal: 16, vertical: 8),
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF9EA8FF),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
+                        boxShadow: const [cardShadow],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
