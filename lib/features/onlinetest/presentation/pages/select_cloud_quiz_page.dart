@@ -39,7 +39,7 @@ class _SelectCloudQuizPageState extends State<SelectCloudQuizPage> {
     try {
       final res = await _client
           .from('cloud_quizzes')
-          .select('id,title,description,owner_id,created_at,share_code')
+          .select('id,title,description,owner_id,created_at')
           .eq('owner_id', user.id)
           .order('created_at', ascending: false);
 
