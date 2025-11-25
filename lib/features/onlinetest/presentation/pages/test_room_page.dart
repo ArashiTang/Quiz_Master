@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:quiz_master/core/database/daos/quiz_dao.dart';
+
 import '../../data/online_test_api.dart';
 import '../../../../core/remote/supabase_auth_service.dart';
 
 class TestRoomPage extends StatefulWidget {
-  const TestRoomPage({super.key});
+  const TestRoomPage({super.key, required this.quizDao});
+
+  final QuizDao quizDao;
 
   @override
   State<TestRoomPage> createState() => _TestRoomPageState();
@@ -69,10 +73,10 @@ class _TestRoomPageState extends State<TestRoomPage> {
                         ),
                         child: _loading
                             ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
                             : const Text('Go'),
                       )
                     ],
@@ -80,10 +84,10 @@ class _TestRoomPageState extends State<TestRoomPage> {
                 ),
               ),
             ),
-            _buildBottomNav(context),
           ],
         ),
       ),
+      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
@@ -140,7 +144,21 @@ class _TestRoomPageState extends State<TestRoomPage> {
           content: Text('进入测试：${test.title} (time limit ${test.timeLimit} mins)'),
         ),
       );
-      // TODO: 导入 quiz 并跳转到在线测试答题页
+      final email = SupabaseAuthService.instance.currentUserEmail;
+      if (email == null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('请先登录')));
+        return;
+      }
+
+      final quizId = await SupabaseAuthService.instance.importQuizFromCloud(
+        shareCode: test.quizId,
+        quizDao: widget.quizDao,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushNamed(context, '/practiceRun', arguments: quizId);
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('加载失败: $e')));

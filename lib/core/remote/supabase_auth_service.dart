@@ -320,7 +320,7 @@ class SupabaseAuthService {
   // =========================================================
   // 从云端导入 Quiz 到本地（使用 correct_answer_texts）
   // =========================================================
-  Future<void> importQuizFromCloud({
+  Future<String> importQuizFromCloud({
     required String shareCode,
     required QuizDao quizDao,
   }) async {
@@ -444,5 +444,7 @@ class SupabaseAuthService {
     );
 
     await quizDao.saveBundle(bundle, ownerKey);
+
+    return newQuizId;
   }
 }

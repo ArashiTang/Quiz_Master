@@ -84,7 +84,7 @@ class QuizApp extends StatelessWidget {
         // Online test
         '/createTest': (_) => const CreateTestPage(),
         '/testList': (_) => const TestListPage(),
-        '/testRoom': (_) => const TestRoomPage(),
+        '/testRoom': (_) => TestRoomPage(quizDao: quizDao),
 
         // Cloud 固定页面（无参数）
         '/cloudQuizList': (_) => const CloudQuizListPage(),
