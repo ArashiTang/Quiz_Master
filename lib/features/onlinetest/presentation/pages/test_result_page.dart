@@ -1,7 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/models/test_result.dart';
@@ -19,6 +24,7 @@ class TestResultPage extends StatefulWidget {
 class _TestResultPageState extends State<TestResultPage> {
   final _api = OnlineTestApi(Supabase.instance.client);
   bool _loading = true;
+  bool _exporting = false;
   List<TestResult> _results = [];
   StreamSubscription<List<TestResult>>? _subscription;
 
@@ -78,9 +84,9 @@ class _TestResultPageState extends State<TestResultPage> {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: _exporting ? null : _exportToPdf,
               icon: const Icon(Icons.picture_as_pdf_outlined),
-              label: const Text('PDF'),
+              label: Text(_exporting ? 'Generating…' : 'Save as PDF'),
             )
           ],
         ),
@@ -125,6 +131,92 @@ class _TestResultPageState extends State<TestResultPage> {
         ],
       ),
     );
+  }
+  Future<void> _exportToPdf() async {
+    if (_results.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No results to export')),
+      );
+      return;
+    }
+
+    setState(() => _exporting = true);
+
+    try {
+      final now = DateTime.now();
+      final passCount = _results.where((r) => r.result == 'pass').length;
+      final failCount = _results.length - passCount;
+      final passRate = _results.isEmpty ? 0 : passCount / _results.length * 100;
+      final dateFormatter = DateFormat('yyyy-MM-dd HH:mm');
+
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.MultiPage(
+          build: (_) => [
+            pw.Text(
+              'Test Results',
+              style: pw.TextStyle(
+                fontSize: 24,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.SizedBox(height: 8),
+            pw.Text('Test ID: ${widget.testId}'),
+            pw.Text('Generated at: ${dateFormatter.format(now)}'),
+            pw.SizedBox(height: 12),
+            pw.Text(
+              'Pass: $passCount · Fail: $failCount · Pass rate: '
+                  '${passRate.toStringAsFixed(1)}%',
+            ),
+            pw.SizedBox(height: 12),
+            pw.Table.fromTextArray(
+              headers: const ['Participant', 'Score', 'Result', 'Submitted'],
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              data: _results
+                  .map(
+                    (r) => [
+                  r.userName.isEmpty ? '-' : r.userName,
+                  '${r.scorePercent.toStringAsFixed(2)}%',
+                  r.result[0].toUpperCase() + r.result.substring(1),
+                  dateFormatter.format(r.submittedAt.toLocal()),
+                ],
+              )
+                  .toList(),
+              cellAlignment: pw.Alignment.centerLeft,
+              cellPadding: const pw.EdgeInsets.symmetric(
+                vertical: 6,
+                horizontal: 4,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      final dir = await getApplicationDocumentsDirectory();
+      final pdfDir = Directory(p.join(dir.path, 'documents'));
+      if (!pdfDir.existsSync()) {
+        await pdfDir.create(recursive: true);
+      }
+
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(now);
+      final fileName = 'test_result_${widget.testId}_$timestamp.pdf';
+      final file = File(p.join(pdfDir.path, fileName));
+      await file.writeAsBytes(await pdf.save());
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PDF saved to Documents')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to generate PDF')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _exporting = false);
+      }
+    }
   }
 }
 
