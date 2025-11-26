@@ -23,6 +23,8 @@ class _CreateTestPageState extends State<CreateTestPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Test'),
@@ -30,87 +32,90 @@ class _CreateTestPageState extends State<CreateTestPage> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildField(
-              label: 'Title',
-              required: true,
-              child: TextField(
-                controller: _titleCtrl,
-                decoration: const InputDecoration.collapsed(hintText: 'Required'),
-              ),
-            ),
-            _buildField(
-              label: 'Select Quiz',
-              child: InkWell(
-                onTap: _selectQuiz,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _selectedQuiz?.title ?? 'Quiz Name',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right),
-                    ],
-                  ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildField(
+                label: 'Title',
+                required: true,
+                child: TextField(
+                  controller: _titleCtrl,
+                  decoration:
+                      const InputDecoration.collapsed(hintText: 'Required'),
                 ),
               ),
-            ),
-            _buildField(
-              label: 'Time Limit',
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 80,
-                    child: TextField(
-                      controller: _timeCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration.collapsed(hintText: '0'),
+              _buildField(
+                label: 'Select Quiz',
+                child: InkWell(
+                  onTap: _selectQuiz,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _selectedQuiz?.title ?? 'Quiz Name',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  const Text('Minutes'),
-                ],
-              ),
-            ),
-            _buildField(
-              label: 'Allow Entry',
-              child: Switch(
-                value: _allowEntry,
-                onChanged: (v) => setState(() => _allowEntry = v),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Center(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(180, 48),
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: const BorderSide(color: Colors.black),
-                  ),
                 ),
-                onPressed: _saving ? null : _onPublish,
-                child: _saving
-                    ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-                    : const Text('Publish'),
               ),
-            ),
-          ],
+              _buildField(
+                label: 'Time Limit',
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 80,
+                      child: TextField(
+                        controller: _timeCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration.collapsed(hintText: '0'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Minutes'),
+                  ],
+                ),
+              ),
+              _buildField(
+                label: 'Allow Entry',
+                child: Switch(
+                  value: _allowEntry,
+                  onChanged: (v) => setState(() => _allowEntry = v),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Center(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(180, 48),
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: const BorderSide(color: Colors.black),
+                    ),
+                  ),
+                  onPressed: _saving ? null : _onPublish,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Publish'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
