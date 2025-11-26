@@ -15,7 +15,7 @@ Error: Package(s) objective_c require the native assets feature to be enabled.
 Enable using `flutter config --enable-native-assets`.
 ```
 
-Run the following once on your machine:
+Run the following once on your machine (or execute `./tool/setup_native_assets.sh` from the project root to do it automatically):
 
 ```
 flutter config --enable-native-assets
