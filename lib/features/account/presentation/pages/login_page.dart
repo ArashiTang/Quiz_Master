@@ -70,6 +70,8 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     const purple = Color(0xFFB5A7FF);
 
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: purple,
@@ -84,94 +86,96 @@ class _LoginPageState extends State<LoginPage> {
           style: TextStyle(color: Colors.white, fontSize: 20),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildLabeledField(
-              label: 'Email',
-              controller: _emailCtrl,
-              errorText: _emailError,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            _buildLabeledField(
-              label: 'Password',
-              controller: _pwdCtrl,
-              errorText: _pwdError,
-              obscureText: _obscurePwd,
-              suffix: IconButton(
-                icon: Icon(
-                  _obscurePwd ? Icons.visibility_off : Icons.visibility,
-                  color: purple,
-                ),
-                onPressed: () {
-                  setState(() => _obscurePwd = !_obscurePwd);
-                },
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(32, 24, 32, 24 + bottomInset),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildLabeledField(
+                label: 'Email',
+                controller: _emailCtrl,
+                errorText: _emailError,
+                keyboardType: TextInputType.emailAddress,
               ),
-            ),
-            const SizedBox(height: 40),
-            Center(
-              child: SizedBox(
-                width: 160,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: purple,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
+              const SizedBox(height: 16),
+              _buildLabeledField(
+                label: 'Password',
+                controller: _pwdCtrl,
+                errorText: _pwdError,
+                obscureText: _obscurePwd,
+                suffix: IconButton(
+                  icon: Icon(
+                    _obscurePwd ? Icons.visibility_off : Icons.visibility,
+                    color: purple,
                   ),
-                  onPressed: _submitting ? null : _onLogin,
-                  child: _submitting
-                      ? const CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor:
-                    AlwaysStoppedAnimation<Color>(Colors.white),
-                  )
-                      : const Text(
-                    'Login',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
+                  onPressed: () {
+                    setState(() => _obscurePwd = !_obscurePwd);
+                  },
                 ),
               ),
-            ),
-            const SizedBox(height: 32),
-            Center(
-              child: Column(
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/resetPassword');
-                    },
-                    child: const Text(
-                      'Forgot password?',
-                      style: TextStyle(
-                        decoration: TextDecoration.underline,
-                        color: purple,
-                        fontSize: 18,
+              const SizedBox(height: 40),
+              Center(
+                child: SizedBox(
+                  width: 160,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: purple,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/register');
-                    },
-                    child: const Text(
-                      'Want to register?',
-                      style: TextStyle(
-                        decoration: TextDecoration.underline,
-                        color: purple,
-                        fontSize: 18,
-                      ),
+                    onPressed: _submitting ? null : _onLogin,
+                    child: _submitting
+                        ? const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                      AlwaysStoppedAnimation<Color>(Colors.white),
+                    )
+                        : const Text(
+                      'Login',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 32),
+              Center(
+                child: Column(
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/resetPassword');
+                      },
+                      child: const Text(
+                        'Forgot password?',
+                        style: TextStyle(
+                          decoration: TextDecoration.underline,
+                          color: purple,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/register');
+                      },
+                      child: const Text(
+                        'Want to register?',
+                        style: TextStyle(
+                          decoration: TextDecoration.underline,
+                          color: purple,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

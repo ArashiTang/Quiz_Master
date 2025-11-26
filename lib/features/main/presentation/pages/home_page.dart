@@ -13,8 +13,9 @@ class _HomePageState extends State<HomePage> {
 
   // Lightweight Style Tools
   TextStyle get _title =>
-      const TextStyle(fontSize: 20, fontWeight: FontWeight.w600);
-  TextStyle get _subtle => const TextStyle(color: Colors.black54);
+      const TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
+  TextStyle get _subtle =>
+      const TextStyle(fontSize: 12, color: Colors.black54);
   BorderRadius get _cardRadius => BorderRadius.circular(16);
 
   @override

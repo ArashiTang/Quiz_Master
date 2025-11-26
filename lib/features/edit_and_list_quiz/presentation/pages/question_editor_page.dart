@@ -317,11 +317,17 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
           padding: const EdgeInsets.all(16),
           children: [
             // type
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                const Text('Number of Answers:  '),
+                const Text('Number of Answers:'),
                 ChoiceChip(
                   label: const Text('Single'),
+                  labelStyle: const TextStyle(fontSize: 12),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                   selected: !_multiple,
                   onSelected: (_) {
                     setState(() {
@@ -336,9 +342,11 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
                     });
                   },
                 ),
-                const SizedBox(width: 8),
                 ChoiceChip(
                   label: const Text('Multiple'),
+                  labelStyle: const TextStyle(fontSize: 12),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                   selected: _multiple,
                   onSelected: (_) {
                     setState(() {
