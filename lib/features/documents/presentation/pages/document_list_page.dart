@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
+import '../../../../core/remote/supabase_auth_service.dart';
+import '../../data/document_storage.dart';
 import 'pdf_viewer_page.dart';
 
 class DocumentListPage extends StatefulWidget {
@@ -17,6 +18,7 @@ class DocumentListPage extends StatefulWidget {
 class _DocumentListPageState extends State<DocumentListPage> {
   final List<File> _files = [];
   bool _loading = true;
+  String _ownerLabel = 'Guest';
 
   @override
   void initState() {
@@ -24,18 +26,11 @@ class _DocumentListPageState extends State<DocumentListPage> {
     _loadFiles();
   }
 
-  Future<Directory> _ensureDirectory() async {
-    final docDir = await getApplicationDocumentsDirectory();
-    final pdfDir = Directory(p.join(docDir.path, 'documents'));
-    if (!pdfDir.existsSync()) {
-      await pdfDir.create(recursive: true);
-    }
-    return pdfDir;
-  }
-
   Future<void> _loadFiles() async {
     setState(() => _loading = true);
-    final dir = await _ensureDirectory();
+    final auth = SupabaseAuthService.instance;
+    final ownerKey = auth.currentOwnerKey;
+    final dir = await DocumentStorage.ensureOwnerDirectory(ownerKey: ownerKey);
     final files = dir
         .listSync()
         .whereType<File>()
@@ -51,6 +46,7 @@ class _DocumentListPageState extends State<DocumentListPage> {
         ..clear()
         ..addAll(files);
       _loading = false;
+      _ownerLabel = auth.currentUser?.email ?? 'Guest';
     });
   }
 
@@ -63,7 +59,7 @@ class _DocumentListPageState extends State<DocumentListPage> {
     if (path == null) return;
 
     final source = File(path);
-    final dir = await _ensureDirectory();
+    final dir = await DocumentStorage.ensureOwnerDirectory();
     var targetPath = p.join(dir.path, p.basename(source.path));
     var counter = 1;
     while (File(targetPath).existsSync()) {
@@ -90,14 +86,22 @@ class _DocumentListPageState extends State<DocumentListPage> {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
-  void _openFile(File file) {
-    Navigator.pushNamed(
+  Future<void> _openFile(File file) async {
+    final deleted = await Navigator.pushNamed(
       context,
       '/pdfViewer',
       arguments: PdfViewerArgs(
         filePath: file.path,
         fileName: p.basename(file.path),
       ),
+    ) as bool?;
+
+    if (!mounted || deleted != true) return;
+
+    await _loadFiles();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('PDF deleted')),
     );
   }
 
@@ -105,7 +109,7 @@ class _DocumentListPageState extends State<DocumentListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('PDF Documents'),
+        title: Text('PDF Documents ($_ownerLabel)'),
         actions: [
           IconButton(
             onPressed: _loadFiles,
