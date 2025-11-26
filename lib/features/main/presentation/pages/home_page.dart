@@ -233,7 +233,11 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Text(title, style: _title),
                       const SizedBox(height: 6),
-                      Text(sub, style: _subtle),
+                      Text(
+                        sub,
+                        style: _subtle.copyWith(fontSize: 11),
+                        maxLines: 2,
+                      ),
                     ],
                   ),
                 ),

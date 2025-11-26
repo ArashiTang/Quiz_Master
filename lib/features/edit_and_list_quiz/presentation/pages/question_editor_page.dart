@@ -317,24 +317,23 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
           padding: const EdgeInsets.all(16),
           children: [
             // type
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Number of Answers:'),
+                const Text('Number of Answers'),
+                const SizedBox(height: 8),
                 ChoiceChip(
                   label: const Text('Single'),
                   labelStyle: const TextStyle(fontSize: 12),
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                   selected: !_multiple,
                   onSelected: (_) {
                     setState(() {
                       _multiple = false;
                       if (_correctIds.length > 1) {
                         final keep =
-                        _correctIds.isEmpty ? null : _correctIds.first;
+                            _correctIds.isEmpty ? null : _correctIds.first;
                         _correctIds.clear();
                         if (keep != null) _correctIds.add(keep);
                       }
@@ -342,11 +341,12 @@ class _QuestionEditorPageState extends State<QuestionEditorPage> {
                     });
                   },
                 ),
+                const SizedBox(height: 8),
                 ChoiceChip(
                   label: const Text('Multiple'),
                   labelStyle: const TextStyle(fontSize: 12),
                   padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                   selected: _multiple,
                   onSelected: (_) {
                     setState(() {
