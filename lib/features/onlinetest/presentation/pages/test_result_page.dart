@@ -5,12 +5,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/models/test_result.dart';
 import '../../data/online_test_api.dart';
+import '../../../documents/data/document_storage.dart';
 
 class TestResultPage extends StatefulWidget {
   const TestResultPage({super.key, required this.testId});
@@ -192,12 +192,9 @@ class _TestResultPageState extends State<TestResultPage> {
         ),
       );
 
-      final dir = await getApplicationDocumentsDirectory();
-      final pdfDir = Directory(p.join(dir.path, 'documents'));
-      if (!pdfDir.existsSync()) {
-        await pdfDir.create(recursive: true);
-      }
-
+      final pdfDir = await DocumentStorage.ensureOwnerDirectory(
+        ownerKey: SupabaseAuthService.instance.currentOwnerKey,
+      );
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(now);
       final fileName = 'test_result_${widget.testId}_$timestamp.pdf';
       final file = File(p.join(pdfDir.path, fileName));
