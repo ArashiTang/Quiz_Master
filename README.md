@@ -1,16 +1,31 @@
-# Quiz_Master
+# Quiz Master
 
-A new Flutter project.
+A Flutter quiz application.
 
-## Getting Started
+## Prerequisites
+- Flutter 3.22 or newer
+- Dart SDK 3.9 or newer (included with Flutter)
 
-This project is a starting point for a Flutter application.
+## Native assets configuration (required)
+This project depends on packages that ship native assets (for example `objective_c` pulled in by the database stack). Flutter requires the native assets feature to be enabled for these dependencies to build. If you see an error like:
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```
+Error: Package(s) objective_c require the native assets feature to be enabled.
+Enable using `flutter config --enable-native-assets`.
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Run the following once on your machine:
+
+```
+flutter config --enable-native-assets
+flutter clean
+flutter pub get
+```
+
+After enabling native assets, rebuild with `flutter run` or your usual build command.
+
+## Running
+1. Ensure a device or emulator is available.
+2. Fetch dependencies: `flutter pub get`.
+3. Launch the app: `flutter run`.
