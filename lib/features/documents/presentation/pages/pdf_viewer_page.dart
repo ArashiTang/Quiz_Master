@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:share_plus/share_plus.dart';
@@ -41,6 +43,36 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
     ]);
   }
 
+  Future<void> _delete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete PDF'),
+        content: const Text('Are you sure you want to delete this file?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final file = File(widget.args.filePath);
+    if (await file.exists()) {
+      await file.delete();
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop(true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = widget.args.fileName ?? 'PDF';
@@ -49,6 +81,10 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
       appBar: AppBar(
         title: Text(title),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: _delete,
+          ),
           IconButton(
             icon: const Icon(Icons.share_outlined),
             onPressed: _share,
