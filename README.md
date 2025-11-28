@@ -1,7 +1,5 @@
 # Quiz Master Development Log
 
-Each record follows the format "Version Number, Time, Added, Fixed," with version numbers evolving from 0.1 to 1.0, and times covering September 1st to November 27th, 2025.
-
 ## 0.1 (2025-09-01)
 
 - Added: Streamlined the startup process and established a minimum runnable architecture for the quiz/onlinetest module, adding basic interfaces and routes.
