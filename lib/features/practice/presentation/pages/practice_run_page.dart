@@ -13,10 +13,12 @@ class PracticeRunArgs {
   PracticeRunArgs({
     required this.quizId,
     this.testId,
+    this.timeLimitSeconds,
   });
 
   final String quizId;
   final String? testId;
+  final int? timeLimitSeconds;
 }
 
 class PracticeRunPage extends StatefulWidget {
@@ -24,6 +26,7 @@ class PracticeRunPage extends StatefulWidget {
   final QuizDao quizDao;
   final PracticeDao practiceDao;
   final String? testId;
+  final int? timeLimitSeconds;
 
   const PracticeRunPage({
     super.key,
@@ -31,6 +34,7 @@ class PracticeRunPage extends StatefulWidget {
     required this.quizDao,
     required this.practiceDao,
     this.testId,
+    this.timeLimitSeconds,
   });
 
   @override
@@ -87,8 +91,8 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
       optMap[q.id] = await widget.quizDao.getOptionsByQuestion(q.id);
     }
 
-    int? timeLimitSeconds;
-    if (widget.testId != null) {
+    int? timeLimitSeconds = widget.timeLimitSeconds;
+    if (timeLimitSeconds == null && widget.testId != null) {
       final test = await _onlineTestApi.fetchById(widget.testId!);
       if (test != null && test.timeLimit > 0) {
         timeLimitSeconds = test.timeLimit * 60;

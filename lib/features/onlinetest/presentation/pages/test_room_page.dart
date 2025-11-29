@@ -160,7 +160,11 @@ class _TestRoomPageState extends State<TestRoomPage> {
       Navigator.pushNamed(
         context,
         '/practiceRun',
-        arguments: PracticeRunArgs(quizId: quizId, testId: test.id),
+        arguments: PracticeRunArgs(
+          quizId: quizId,
+          testId: test.id,
+          timeLimitSeconds: test.timeLimit > 0 ? test.timeLimit * 60 : null,
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context)

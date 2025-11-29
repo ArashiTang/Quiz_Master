@@ -117,6 +117,7 @@ class QuizApp extends StatelessWidget {
             builder: (_) => PracticeRunPage(
               quizId: parsedArgs.quizId,
               testId: parsedArgs.testId,
+              timeLimitSeconds: parsedArgs.timeLimitSeconds,
               quizDao: quizDao,
               practiceDao: practiceDao,
             ),
