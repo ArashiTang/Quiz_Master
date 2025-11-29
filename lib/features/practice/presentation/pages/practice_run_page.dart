@@ -55,6 +55,9 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
   Timer? _timer;
   int _seconds = 0;
   int? _startedAtMs; // The actual start time of entering the page (used for writing to the database).
+  int? _timeLimitSeconds;
+  bool _timeUp = false;
+  bool _submitting = false;
 
   bool _loading = true;
 
@@ -84,11 +87,20 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
       optMap[q.id] = await widget.quizDao.getOptionsByQuestion(q.id);
     }
 
+    int? timeLimitSeconds;
+    if (widget.testId != null) {
+      final test = await _onlineTestApi.fetchById(widget.testId!);
+      if (test != null && test.timeLimit > 0) {
+        timeLimitSeconds = test.timeLimit * 60;
+      }
+    }
+
     // Record the start time and start the timer (memory only).
     _startedAtMs = DateTime.now().millisecondsSinceEpoch;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() => _seconds++);
+      _checkTimeUp();
     });
 
     setState(() {
@@ -100,6 +112,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
         ..clear()
         ..addAll(optMap);
       _loading = false;
+      _timeLimitSeconds = timeLimitSeconds;
 
       // Prepare a key for each question (for directory navigation).
       for (final q in _questions) {
@@ -130,6 +143,29 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     return style == 0
         ? String.fromCharCode('A'.codeUnitAt(0) + index)
         : '${index + 1}';
+  }
+
+  int _displaySeconds() {
+    if (widget.testId != null && (_timeLimitSeconds ?? 0) > 0) {
+      final remaining = (_timeLimitSeconds ?? 0) - _seconds;
+      return remaining > 0 ? remaining : 0;
+    }
+    return _seconds;
+  }
+
+  void _checkTimeUp() {
+    if (widget.testId == null) return;
+    final limit = _timeLimitSeconds ?? 0;
+    if (limit <= 0 || _timeUp || _submitting) return;
+    if (_seconds >= limit) {
+      _timeUp = true;
+      _timer?.cancel();
+      _autoSubmitDueToTimeout();
+    }
+  }
+
+  Future<void> _autoSubmitDueToTimeout() async {
+    await _submit(confirmDialog: false, showTimeUpDialog: true);
   }
 
   String _formatClock(int s) {
@@ -246,7 +282,9 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
     return ok == true;
   }
 
-  Future<void> _submit({bool confirmDialog = true}) async {
+  Future<void> _submit({bool confirmDialog = true, bool showTimeUpDialog = false}) async {
+    if (_submitting) return;
+
     if (confirmDialog) {
       final ok = await showDialog<bool>(
         context: context,
@@ -267,49 +305,73 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
       if (ok != true) return;
     }
 
-    // 1) First, create a run instance (using the page entry time as startedAt).
-    final runId = await widget.practiceDao.startRun(
-      widget.quizId,
-      SupabaseAuthService.instance.currentOwnerKey,
-      startedAtMs: _startedAtMs,
-    );
+    _submitting = true;
+    _timer?.cancel();
 
-    // 2) Calculate your score + write your answer to each question.
-    int score = 0;
-    int totalScore = 0;
-    final enableScores = _quiz?.enableScores ?? false;
-
-    for (final q in _questions) {
-      final chosen = _picked[q.id] ?? <String>{};
-      final correct = _judgeCorrect(q, chosen);
-      final qScore = enableScores ? (q.score ?? 1) : 1;
-      totalScore += qScore;
-      if (correct) {
-        score += qScore;
-      }
-      await widget.practiceDao.saveAnswer(
-        runId: runId,
-        questionId: q.id,
-        chosenIds: chosen.toList(),
-        correct: correct,
+    try {
+      // 1) First, create a run instance (using the page entry time as startedAt).
+      final runId = await widget.practiceDao.startRun(
+        widget.quizId,
+        SupabaseAuthService.instance.currentOwnerKey,
+        startedAtMs: _startedAtMs,
       );
-    }
 
-    // 3) Write the end time and total score
-    await widget.practiceDao.finishRun(runId, score);
+      // 2) Calculate your score + write your answer to each question.
+      int score = 0;
+      int totalScore = 0;
+      final enableScores = _quiz?.enableScores ?? false;
 
-    // 4) Online quiz: Write the results back to Supabase
-    await _uploadTestResult(
-      runId: runId,
-      score: score,
-      totalScore: totalScore,
-    );
+      for (final q in _questions) {
+        final chosen = _picked[q.id] ?? <String>{};
+        final correct = _judgeCorrect(q, chosen);
+        final qScore = enableScores ? (q.score ?? 1) : 1;
+        totalScore += qScore;
+        if (correct) {
+          score += qScore;
+        }
+        await widget.practiceDao.saveAnswer(
+          runId: runId,
+          questionId: q.id,
+          chosenIds: chosen.toList(),
+          correct: correct,
+        );
+      }
 
-    if (!mounted) return;
-    if (widget.testId != null) {
-      Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
-    } else {
-      Navigator.pop(context); // Return to selection page
+      // 3) Write the end time and total score
+      await widget.practiceDao.finishRun(runId, score);
+
+      // 4) Online quiz: Write the results back to Supabase
+      await _uploadTestResult(
+        runId: runId,
+        score: score,
+        totalScore: totalScore,
+      );
+
+      if (!mounted) return;
+      if (showTimeUpDialog) {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            title: const Text('Time is up!'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+                },
+                child: const Text('Notice'),
+              ),
+            ],
+          ),
+        );
+      } else if (widget.testId != null) {
+        Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+      } else {
+        Navigator.pop(context); // Return to selection page
+      }
+    } finally {
+      _submitting = false;
     }
   }
 
@@ -396,7 +458,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
             child: Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
-                _formatClock(_seconds),
+                _formatClock(_displaySeconds()),
                 style:
                 const TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
               ),
