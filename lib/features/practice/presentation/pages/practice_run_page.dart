@@ -460,7 +460,7 @@ class _PracticeRunPageState extends State<PracticeRunPage> {
               child: Text(
                 _formatClock(_displaySeconds()),
                 style:
-                const TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
+                    const TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
               ),
             ),
           ),
