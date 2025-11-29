@@ -107,6 +107,17 @@ class OnlineTestApi {
     });
   }
 
+  Future<Test?> fetchById(String id) async {
+    final res = await _client
+        .from('test')
+        .select()
+        .eq('id', id)
+        .maybeSingle();
+
+    if (res == null) return null;
+    return Test.fromJson(res);
+  }
+
   Stream<List<TestResult>> watchResults(String testId) {
     return _client
         .from('testresult')
